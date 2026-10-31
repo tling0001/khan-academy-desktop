@@ -85,7 +85,8 @@ async fn poll_device_auth(device_code: String) -> Result<serde_json::Value, Stri
 }
 
 use std::sync::{Arc, OnceLock};
-use std::sync::atomic::{AtomicBool, Ordering};\n#[cfg_attr(mobile, tauri::mobile_entry_point)]
+use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
