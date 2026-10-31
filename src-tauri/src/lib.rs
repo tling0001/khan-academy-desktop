@@ -81,7 +81,7 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   if course_id.trim().is_empty() || course_id.len() > 128 {
     return Err("Invalid course identifier".into());
   }
-  let query = format!("{}\\n", include_str!("../../src/khanCourseQuery.graphql"));
+  let query = format!("{}\n", include_str!("../../src/khanCourseQuery.graphql"));
   let mut hash: u32 = 5381;
   for ch in query.chars().rev() {
     hash = hash.wrapping_mul(33) ^ (ch as u32);
@@ -134,56 +134,59 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
 
 #[tauri::command]
 async fn fetch_khan_explore_menu() -> Result<Vec<serde_json::Value>, String> {
-  const ALL: &str = "query AllCurriculumsQuery { curriculums(includeEmptyCurriculum: true) { key country region name courseMenuRevision { sha } } }";
-  const MENU: &str = "query LearnMenuQuery($curriculum: String!) { learnMenuTopics(curriculum: $curriculum) { domainId translatedTitle icon children { courseId translatedTitle href } } }";
-  let client = reqwest::Client::builder()
-    .user_agent("KhanAcademy/8.5.1 (org.khanacademy.android; Android 35; UnknownDeviceName; Google; phone)")
-    .build().map_err(|e| format!("Could not initialize Khan Academy client: {e}"))?;
+  const ALL: &str = "query AllCurriculumsQuery { curriculums(includeEmptyCurriculum: true) { key country region name courseMenuRevision { sha __typename } __typename } __typename }";
+  const MENU: &str = "query LearnMenuQuery($curriculum: String!) { learnMenuTopics(curriculum: $curriculum) { domainId translatedTitle icon children { courseId translatedTitle href __typename } __typename } __typename }";
+  let client = khan_client()?;
   let response = client.post("https://www.khanacademy.org/api/internal/graphql/AllCurriculumsQuery")
     .header("Accept", "application/json").header("Content-Type", "application/json")
     .header("Origin", "app:org.khanacademy.android")
     .json(&serde_json::json!({"fromGraphiql":false,"operationName":"AllCurriculumsQuery","query":ALL,"variables":{}}))
     .send().await.map_err(|e| format!("Could not fetch Khan Academy curriculums: {e}"))?;
   let status = response.status();
-  let response_text = response.text().await.map_err(|e| format!("Could not read curriculum response (HTTP {status}): {e}"))?;
-  if !status.is_success() {
-    let detail = response_text.chars().take(800).collect::<String>();
-    return Err(format!("Curriculum request returned HTTP {status}: {detail}"));
-  }
-  let body: serde_json::Value = serde_json::from_str(&response_text)
-    .map_err(|e| format!("Could not parse curriculum response: {e}; body: {}", response_text.chars().take(500).collect::<String>()))?;
-  if let Some(errors) = body.get("errors") { return Err(format!("Curriculum GraphQL error: {errors}")); }
+  let text = response.text().await.map_err(|e| format!("Could not read curriculum response (HTTP {status}): {e}"))?;
+  if !status.is_success() { return Err(format!("Curriculum request returned HTTP {status}: {}", text.chars().take(1000).collect::<String>())); }
+  let body: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("Could not parse curriculum response: {e}"))?;
+  if let Some(errors) = body.get("errors") { return Err(format!("AllCurriculumsQuery GraphQL error: {errors}")); }
   let curriculums = body.pointer("/data/curriculums").and_then(|v|v.as_array()).ok_or("Khan Academy response omitted data.curriculums")?;
-  let curriculum = curriculums.iter().find(|c| c.get("key").and_then(|v|v.as_str()).map(|k| k.starts_with("us-")).unwrap_or(false))
-    .or_else(|| curriculums.first()).ok_or("Khan Academy returned no curriculums")?;
-  let key = curriculum.get("key").and_then(|v|v.as_str()).ok_or("Curriculum has no key")?;
-  let response = client.post("https://www.khanacademy.org/api/internal/graphql/LearnMenuQuery")
-    .header("Accept", "application/json").header("Content-Type", "application/json")
-    .header("Origin", "app:org.khanacademy.android")
-    .json(&serde_json::json!({"fromGraphiql":false,"operationName":"LearnMenuQuery","query":MENU,"variables":{"curriculum":key}}))
-    .send().await.map_err(|e| format!("Could not fetch Khan Academy learn menu for {key}: {e}"))?;
-  let status = response.status();
-  let body: serde_json::Value = response.json().await.map_err(|e| format!("Could not parse learn menu response (HTTP {status}): {e}"))?;
-  if !status.is_success() { return Err(format!("Learn menu request returned HTTP {status}: {}", body)); }
-  if let Some(errors) = body.get("errors") { return Err(format!("Learn menu GraphQL error: {errors}")); }
-  let topics = body.pointer("/data/learnMenuTopics").and_then(|v|v.as_array()).ok_or("Khan Academy response omitted data.learnMenuTopics")?;
-  let mut result = Vec::new();
-  for topic in topics {
-    let title = topic.get("translatedTitle").and_then(|v|v.as_str()).unwrap_or("Explore").to_string();
-    let domain_id = topic.get("domainId").cloned().unwrap_or(serde_json::Value::Null);
-    let icon = topic.get("icon").cloned().unwrap_or(serde_json::Value::Null);
-    let children = topic.get("children").and_then(|v|v.as_array()).cloned().unwrap_or_default();
-    let courses: Vec<serde_json::Value> = children.into_iter().filter_map(|child| {
-      let href = child.get("href").and_then(|v|v.as_str())?;
-      let course_title = child.get("translatedTitle").and_then(|v|v.as_str())?;
-      let mut item = serde_json::json!({"translatedTitle":course_title,"href":href});
-      if let Some(id) = child.get("courseId") { item["courseId"] = id.clone(); }
-      Some(item)
-    }).collect();
-    if !courses.is_empty() {
-      result.push(serde_json::json!({"domainId":domain_id,"translatedTitle":title,"icon":icon,"children":courses}));
+  let eligible: Vec<&serde_json::Value> = curriculums.iter().filter(|c| c.pointer("/courseMenuRevision/sha").and_then(|v|v.as_str()).map_or(false, |v| !v.is_empty())).collect();
+  if eligible.is_empty() { return Err("Khan Academy returned no curriculum with a published course menu revision".into()); }
+  let mut result: Vec<serde_json::Value> = Vec::new();
+  for curriculum in eligible {
+    let key = curriculum.get("key").and_then(|v|v.as_str()).ok_or("Curriculum has no key")?;
+    let response = client.post("https://www.khanacademy.org/api/internal/graphql/LearnMenuQuery")
+      .header("Accept", "application/json").header("Content-Type", "application/json")
+      .header("Origin", "app:org.khanacademy.android")
+      .json(&serde_json::json!({"fromGraphiql":false,"operationName":"LearnMenuQuery","query":MENU,"variables":{"curriculum":key}}))
+      .send().await.map_err(|e| format!("Could not fetch Khan Academy learn menu for {key}: {e}"))?;
+    let status = response.status();
+    let text = response.text().await.map_err(|e| format!("Could not read learn menu response (HTTP {status}): {e}"))?;
+    if !status.is_success() { return Err(format!("LearnMenuQuery for {key} returned HTTP {status}: {}", text.chars().take(800).collect::<String>())); }
+    let menu: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("Could not parse learn menu for {key}: {e}"))?;
+    if let Some(errors) = menu.get("errors") { return Err(format!("LearnMenuQuery for {key} GraphQL error: {errors}")); }
+    let topics = menu.pointer("/data/learnMenuTopics").and_then(|v|v.as_array()).ok_or("Khan Academy response omitted data.learnMenuTopics")?;
+    for topic in topics {
+      let title = topic.get("translatedTitle").and_then(|v|v.as_str()).unwrap_or("Explore").to_string();
+      let domain_id = topic.get("domainId").cloned().unwrap_or(serde_json::Value::Null);
+      let icon = topic.get("icon").cloned().unwrap_or(serde_json::Value::Null);
+      let children = topic.get("children").and_then(|v|v.as_array()).cloned().unwrap_or_default();
+      let courses: Vec<serde_json::Value> = children.into_iter().filter_map(|child| {
+        let href = child.get("href").and_then(|v|v.as_str())?;
+        let course_title = child.get("translatedTitle").and_then(|v|v.as_str())?;
+        let mut item = serde_json::json!({"translatedTitle":course_title,"href":href});
+        if let Some(id) = child.get("courseId") { item["courseId"] = id.clone(); }
+        Some(item)
+      }).collect();
+      if !courses.is_empty() {
+        if let Some(existing) = result.iter_mut().find(|entry| entry.get("domainId") == Some(&domain_id)) {
+          if let Some(items) = existing.get_mut("children").and_then(|v|v.as_array_mut()) {
+            for course in courses { if !items.iter().any(|item| item.get("href") == course.get("href")) { items.push(course); } }
+          }
+        } else {
+          result.push(serde_json::json!({"domainId":domain_id,"translatedTitle":title,"icon":icon,"children":courses,"curriculum":key}));
+        }
+      }
     }
   }
-  if result.is_empty() { return Err(format!("Khan Academy returned no learn-menu entries for curriculum {key}")); }
+  if result.is_empty() { return Err("Khan Academy returned no learn-menu entries across published curricula".into()); }
   Ok(result)
 }
