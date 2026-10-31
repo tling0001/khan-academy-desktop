@@ -7,6 +7,12 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+
+# One active build per branch/PR. Superseded runs are cancelled; the replacement
+# waits for the concurrency slot to be released before it starts.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     strategy:
