@@ -51,6 +51,7 @@ jobs:
             src-tauri/target/release/bundle/**/*.rpm
             src-tauri/target/release/bundle/**/*.AppImage
             src-tauri/target/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.app
             src-tauri/target/release/bundle/**/*.app.tar.gz
             src-tauri/target/release/bundle/**/*.app.tar.gz.sig
           if-no-files-found: error
