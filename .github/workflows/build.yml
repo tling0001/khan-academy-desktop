@@ -8,11 +8,10 @@ on:
 permissions:
   contents: read
 
-# One active build per branch/PR. Superseded runs are cancelled; the replacement
-# waits for the concurrency slot to be released before it starts.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -21,10 +20,19 @@ jobs:
         include:
           - platform: ubuntu-22.04
             args: --bundles deb,rpm
+            artifact-path: src-tauri/target/release/bundle/**/*.deb
           - platform: windows-latest
             args: --bundles msi,nsis
+            artifact-path: |
+              src-tauri/target/release/bundle/**/*.msi
+              src-tauri/target/release/bundle/**/*.exe
           - platform: macos-latest
             args: --bundles dmg,app
+            artifact-path: |
+              src-tauri/target/release/bundle/**/*.dmg
+              src-tauri/target/release/bundle/**/*.app
+              src-tauri/target/release/bundle/**/*.app.tar.gz
+              src-tauri/target/release/bundle/**/*.app.tar.gz.sig
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -50,15 +58,7 @@ jobs:
         if: always()
         with:
           name: khan-academy-${{ matrix.platform }}-installers
-          path: |
-            src-tauri/target/release/bundle/**/*.msi
-            src-tauri/target/release/bundle/**/*.exe
-            src-tauri/target/release/bundle/**/*.deb
-            src-tauri/target/release/bundle/**/*.rpm
-                        src-tauri/target/release/bundle/**/*.dmg
-            src-tauri/target/release/bundle/**/*.app
-            src-tauri/target/release/bundle/**/*.app.tar.gz
-            src-tauri/target/release/bundle/**/*.app.tar.gz.sig
-          if-no-files-found: error
+          path: ${{ matrix.artifact-path }}
+          if-no-files-found: warn
           compression-level: 0
           retention-days: 30
