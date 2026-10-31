@@ -61,8 +61,13 @@ async fn fetch_khan_explore_menu() -> Result<Vec<serde_json::Value>, String> {
     .json(&serde_json::json!({"fromGraphiql":false,"operationName":"AllCurriculumsQuery","query":ALL,"variables":{}}))
     .send().await.map_err(|e| format!("Could not fetch Khan Academy curriculums: {e}"))?;
   let status = response.status();
-  let body: serde_json::Value = response.json().await.map_err(|e| format!("Could not parse curriculum response (HTTP {status}): {e}"))?;
-  if !status.is_success() { return Err(format!("Curriculum request returned HTTP {status}: {}", body)); }
+  let response_text = response.text().await.map_err(|e| format!("Could not read curriculum response (HTTP {status}): {e}"))?;
+  if !status.is_success() {
+    let detail = response_text.chars().take(800).collect::<String>();
+    return Err(format!("Curriculum request returned HTTP {status}: {detail}"));
+  }
+  let body: serde_json::Value = serde_json::from_str(&response_text)
+    .map_err(|e| format!("Could not parse curriculum response: {e}; body: {}", response_text.chars().take(500).collect::<String>()))?;
   if let Some(errors) = body.get("errors") { return Err(format!("Curriculum GraphQL error: {errors}")); }
   let curriculums = body.pointer("/data/curriculums").and_then(|v|v.as_array()).ok_or("Khan Academy response omitted data.curriculums")?;
   let curriculum = curriculums.iter().find(|c| c.get("key").and_then(|v|v.as_str()).map(|k| k.starts_with("us-")).unwrap_or(false))
