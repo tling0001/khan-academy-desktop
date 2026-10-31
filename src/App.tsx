@@ -1,12 +1,14 @@
 import {useMemo,useState} from "react";
 import androidMenu from "./data/android-learn-menu.json";
+import androidCourseIds from "./data/android-course-ids.json";
 import {BookOpen,Compass,GraduationCap,ClipboardList,UserRound,Search,Bell,ChevronRight,ArrowUpRight,Menu,X,Sparkles,Clock3,Calculator,FlaskConical,BookText,Globe2,Palette,Code2,Heart,Settings,CircleHelp,LogIn,PanelLeftClose,PanelLeftOpen,Bookmark} from "lucide-react";
 type Page="Home"|"Courses"|"Explore"|"Assignments"|"Profile";
-type Course={title:string;group:string;description?:string;href:string;symbol?:string;theme?:string;units?:string};
+type Course={title:string;group:string;description?:string;href:string;courseId?:string;symbol?:string;theme?:string;units?:string};
 type AndroidMenuGroup={group:string;courses:{title:string;href:string}[]};
+type AndroidCourseIds=Record<string,string>;
 const categoryTheme=(group:string)=>/Math/.test(group)?"lavender":/Science/.test(group)?"mint":/Computing/.test(group)?"blue":/Test prep/.test(group)?"gold":/English/.test(group)?"pink":/Social studies/.test(group)?"gold":/Economics/.test(group)?"green":/Life skills/.test(group)?"mint":"blue";
 const categorySymbol=(group:string)=>/Math/.test(group)?"∑":/Science/.test(group)?"⚛":/Computing/.test(group)?"</>":/Test prep/.test(group)?"✎":/English/.test(group)?"Aa":/Social studies/.test(group)?"◷":/Economics/.test(group)?"$":"✦";
-const courses:Course[]=(androidMenu as AndroidMenuGroup[]).flatMap(section=>section.courses.map(item=>({title:item.title,group:section.group,href:item.href,symbol:categorySymbol(section.group),theme:categoryTheme(section.group)})));
+const courses:Course[]=(androidMenu as AndroidMenuGroup[]).flatMap(section=>section.courses.map(item=>({title:item.title,group:section.group,href:item.href,courseId:(androidCourseIds as AndroidCourseIds)[item.href],symbol:categorySymbol(section.group),theme:categoryTheme(section.group)})));
 const courseFilters=["All",...Array.from(new Set(courses.map(course=>course.group.split(":")[0].trim())))];
 const nav:{label:Page;icon:any}[]=[{label:"Home",icon:BookOpen},{label:"Courses",icon:GraduationCap},{label:"Explore",icon:Compass},{label:"Assignments",icon:ClipboardList},{label:"Profile",icon:UserRound}];
 const subjects=[{name:"Math",detail:"From early math to calculus.",icon:Calculator,theme:"lavender"},{name:"Science",detail:"Biology, chemistry, physics, and more.",icon:FlaskConical,theme:"mint"},{name:"Computing",detail:"Programming and computer science.",icon:Code2,theme:"blue"},{name:"Arts & humanities",detail:"History, grammar, and art history.",icon:Palette,theme:"gold"},{name:"Reading & language arts",detail:"Reading comprehension and language.",icon:BookText,theme:"pink"},{name:"Economics & finance",detail:"Markets, money, and the economy.",icon:Globe2,theme:"green"}];
