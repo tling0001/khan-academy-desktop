@@ -20,7 +20,7 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
-            args: --bundles deb,rpm,appimage
+            args: --bundles deb,rpm
           - platform: windows-latest
             args: --bundles msi,nsis
           - platform: macos-latest
@@ -55,8 +55,7 @@ jobs:
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.deb
             src-tauri/target/release/bundle/**/*.rpm
-            src-tauri/target/release/bundle/**/*.AppImage
-            src-tauri/target/release/bundle/**/*.dmg
+                        src-tauri/target/release/bundle/**/*.dmg
             src-tauri/target/release/bundle/**/*.app
             src-tauri/target/release/bundle/**/*.app.tar.gz
             src-tauri/target/release/bundle/**/*.app.tar.gz.sig
