@@ -16,7 +16,7 @@ The Android activity is a React Native host. The APK archive contains the compil
 
 The English learn-menu seed file contains 33 curriculum/localization entries. The default curriculum entry contains 17 menu groups and 174 course/topic links. The desktop app now imports this bundled catalog from `src/data/android-learn-menu.json` instead of relying on the original hand-maintained 12-item sample list. Course titles and relative paths are retained from the Android package.
 
-The Android launcher image uses the Khan Academy green `#14BF96` and the white learner/leaf mark inside a green hexagon. The same artwork is included as an SVG in `public/khan-academy.svg` for the app chrome and in `src-tauri/icons/khan-academy.svg` as the source for generating Tauri's platform-specific icon files during CI.
+The Android launcher image uses the Khan Academy green `#14BF96` and the white learner/leaf mark inside a green hexagon. The exact 192 × 192 Android launcher PNG is committed at `public/android-launcher.png` for the app chrome and `src-tauri/icons/android-launcher.png` as the source for Tauri's platform-specific PNG/ICO/ICNS assets. GitHub Actions runs the Tauri icon generator before packaging each platform.
 
 ## Porting status and constraints
 
