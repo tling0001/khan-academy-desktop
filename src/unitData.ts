@@ -1,3 +1,4 @@
+import {invoke} from "@tauri-apps/api/core";
 export type KAItem={id:string;kind:string;title:string;duration?:number;contentId?:string};
 export type KALesson={id:string;title:string;description:string;items:KAItem[]};
 export type KAUnit={id:string;title:string;description:string;mastery:boolean;lessons:KALesson[];quizzes:any[];unitTest:any};
