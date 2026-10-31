@@ -56,3 +56,18 @@
  .home-browse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:440px){.home-browse-grid{grid-template-columns:1fr}.android-card-header{padding:14px 16px}}
+
+/* Android 8.5.1 bottom tab navigation (Home, Activities, Explore, Bookmarks) */
+.android-bottom-tabs{display:none}
+@media(max-width:760px){
+ .android-bottom-tabs{position:fixed;z-index:30;left:0;right:0;bottom:0;height:64px;padding:5px max(12px,env(safe-area-inset-left)) calc(5px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-right));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;background:var(--chrome,#fff);border-top:1px solid #e2e7eb;box-shadow:0 -2px 8px #172c3b0a}
+ .android-bottom-tabs button{height:54px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:8px;background:transparent;color:#687784;font:inherit;font-size:10px;font-weight:600;transition:color .18s,background .18s,transform .18s}
+ .android-bottom-tabs button .tab-icon{width:54px;height:29px;display:grid;place-items:center;border-radius:18px;transition:background .18s,transform .18s}
+ .android-bottom-tabs button.selected{color:#155fce}
+ .android-bottom-tabs button.selected .tab-icon{background:#e7efff;transform:scale(1.02)}
+ .android-bottom-tabs button.selected .tab-icon svg{stroke-width:2.4}
+ .android-bottom-tabs button:active .tab-icon{transform:scale(.94)}
+ main{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+ .scroll{padding-bottom:20px}
+}
+@media(prefers-reduced-motion:reduce){.android-bottom-tabs button,.android-bottom-tabs button .tab-icon{transition:none}}
