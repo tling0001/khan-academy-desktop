@@ -1,12 +1,27 @@
 # Android reference: Khan Academy 8.5.1
 
-- Application ID / namespace: org.khanacademy.android
-- Version name: 8.5.1; version code: 104846
-- Main activity: org.khanacademy.android.ui.library.MainActivity
-- Main UI: app/src/main/assets/index.bundle (React Native bundle, approximately 6.2 MB)
-- Seed data: app/src/main/assets/data/initial_learn_menus_en_json (gzip-compressed JSON) and localized variants
-- Design assets: app/src/main/assets/fonts, app/src/main/res/drawable*, app/src/main/res/mipmap*, app/src/main/res/values*
+## Source inventory
 
-The native activity is a React Native host. It creates the root frame layout and handles Android intents/deep links. The bundle contains app navigation, screen fixtures, localized strings, and GraphQL operation documents. Feature names visible in the bundle include Home, Explore, Courses, course/unit/topic navigation, Assignments, Search, Profile, Bookmarks, learning paths, and progress.
+- Application ID / namespace: `org.khanacademy.android`
+- Version name: `8.5.1`; version code: `104846`
+- Main activity: `org.khanacademy.android.ui.library.MainActivity`
+- Main UI: `app/src/main/assets/index.bundle` — a 6,175,052-byte Hermes bytecode bundle (Hermes bytecode version 96)
+- Learning menu: `app/src/main/assets/data/initial_learn_menus_en_json` — gzip-compressed JSON, with localized/curriculum variants
+- Launcher artwork: `app/src/main/res/mipmap-xxxhdpi/app_icon.png` (192 × 192)
+- Other design resources: `app/src/main/assets/fonts`, `app/src/main/res/drawable*`, `app/src/main/res/mipmap*`, and `app/src/main/res/values*`
 
-The desktop UI currently implements browse/navigation surfaces and uses canonical course URLs. It does not claim to implement authenticated progress, assignments, mastery, or the full interactive lesson player. Those require a deliberate port of the app's authenticated GraphQL flows and Android native services.
+The Android activity is a React Native host. The APK archive contains the compiled Hermes bundle, not the original editable React Native component source. This means component trees and screen styles cannot simply be copied as source files; the bundle and Android resources have to be inspected and behavior reconstructed in the desktop React application.
+
+## Data recovered from the Android package
+
+The English learn-menu seed file contains 33 curriculum/localization entries. The default curriculum entry contains 17 menu groups and 174 course/topic links. The desktop app now imports this bundled catalog from `src/data/android-learn-menu.json` instead of relying on the original hand-maintained 12-item sample list. Course titles and relative paths are retained from the Android package.
+
+The Android launcher image uses the Khan Academy green `#14BF96` and the white learner/leaf mark inside a green hexagon. The same artwork is included as an SVG in `public/khan-academy.svg` for the app chrome and in `src-tauri/icons/khan-academy.svg` as the source for generating Tauri's platform-specific icon files during CI.
+
+## Porting status and constraints
+
+- Implemented in the desktop shell: responsive navigation, search, course browsing, course detail navigation, explore, assignments and profile entry points, plus page entrance transitions.
+- The course browser is now data-backed by the Android 8.5.1 learn-menu seed rather than a small illustrative catalog.
+- The Android APK does not include readable original React component source. Its Hermes bytecode is useful for reverse engineering but is not a drop-in desktop source tree.
+- Authenticated progress, teacher/class assignment flows, mastery state, and the interactive lesson/exercise player are not complete. They require tracing the relevant bundled application behavior and reproducing the authenticated network/API flows; they must not be represented by static placeholder data.
+- The desktop app must continue to be built by GitHub Actions on Windows, Linux, and macOS. Local builds are intentionally not part of this workflow.
