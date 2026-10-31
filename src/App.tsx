@@ -1,4 +1,5 @@
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
+import {invoke} from "@tauri-apps/api/core";
 import {Home as HomeIcon,ClipboardList as ActivitiesTabIcon,Search as SearchIcon,Bookmark as BookmarkIcon} from "lucide-react";
 import {UnitExperience} from "./UnitExperience";
 import androidMenu from "./data/android-learn-menu.json";
@@ -74,8 +75,11 @@ function CourseCard({course,open}:{course:Course;open:()=>void}){return <button 
 function Courses({list,filter,setFilter,open,query}:{list:Course[];filter:string;setFilter:(s:string)=>void;open:(c:Course)=>void;query:string}){const sections=(androidMenu as AndroidMenuGroup[]).map(section=>({...section,courses:section.courses.filter(item=>list.some(c=>c.group===section.group&&c.title===item.title))})).filter(section=>section.courses.length>0);return <div className="content enter"><div className="intro"><small>LEARN AT YOUR OWN PACE</small><h1>Courses</h1><p>Browse the learning menu from Khan Academy Android 8.5.1.</p></div><div className="filters">{courseFilters.map(f=><button className={filter===f?"chosen":""} onClick={()=>setFilter(f)} key={f}>{f}</button>)}</div>{query&&<p className="caption">Results for “{query}”</p>}<div className="menu-sections">{sections.map(section=><section className="menu-section" key={section.group}><h2>{section.group}</h2><div>{section.courses.map(item=><button className="menu-course" key={item.href+item.title} onClick={()=>{const selected=list.find(c=>c.group===section.group&&c.title===item.title);if(selected)open(selected)}}><span>{item.title}</span><ChevronRight size={17}/></button>)}</div></section>)}</div>{!list.length&&<div className="empty"><Search/><h2>No courses found</h2><p>Try another search or choose a different subject.</p></div>}</div>}
 function Explore({open,goCourses}:{open:(c:Course)=>void;goCourses:()=>void}){
  const [term,setTerm]=useState(""),[recent,setRecent]=useState<string[]>([]),[expanded,setExpanded]=useState<string[]>([]);
- const domains=Array.from(new Set(courses.map(c=>c.group.split(":")[0].trim())));
- const filtered=courses.filter(c=>(c.title+" "+c.group).toLowerCase().includes(term.toLowerCase()));
+ const [liveCourses,setLiveCourses]=useState<Course[]|null>(null),[menuError,setMenuError]=useState("");
+ useEffect(()=>{let active=true;invoke<{group:string;courses:{title:string;href:string;courseId?:string}[]}[]>("fetch_khan_explore_menu").then(groups=>{if(!active)return;const rows=groups.flatMap(g=>g.courses.map(c=>({title:c.title,group:g.group,href:c.href,courseId:c.courseId,symbol:categorySymbol(g.group),theme:categoryTheme(g.group)})));if(rows.length)setLiveCourses(rows);else setMenuError("Khan Academy returned an empty curriculum menu.");}).catch(e=>{if(active)setMenuError(String(e));});return()=>{active=false}},[]);
+ const menuCourses=liveCourses??courses;
+ const domains=Array.from(new Set(menuCourses.map(c=>c.group.split(":")[0].trim())));
+ const filtered=menuCourses.filter(c=>(c.title+" "+c.group).toLowerCase().includes(term.toLowerCase()));
  const choose=(c:Course)=>{setRecent(v=>[c.title,...v.filter(x=>x!==c.title)].slice(0,5));open(c)};
  const toggle=(d:string)=>setExpanded(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d]);
  const iconFor=(d:string)=>/Math/.test(d)?"∑":/Science/.test(d)?"⚛":/Computing/.test(d)?"</>":/English/.test(d)?"Aa":/Social/.test(d)?"◷":/Economics/.test(d)?"$":/Test/.test(d)?"✎":"✦";
@@ -83,9 +87,9 @@ function Explore({open,goCourses}:{open:(c:Course)=>void;goCourses:()=>void}){
   <div className="ka-explore-heading"><h1>Explore</h1></div>
   <label className="ka-explore-search"><Search size={19}/><input value={term} onChange={e=>setTerm(e.target.value)} placeholder="Search for courses and topics"/>{term&&<button onClick={()=>setTerm("")} aria-label="Clear search"><X size={16}/></button>}</label>
   {!term&&recent.length>0&&<section className="ka-recent-search"><b>Recent searches</b>{recent.map(x=><button key={x} onClick={()=>setTerm(x)}><Clock3 size={15}/>{x}</button>)}</section>}
-  <section className="ka-domains-card"><div className="ka-domains-header"><h2>Browse Khan Academy</h2><button onClick={()=>{const pick=courses[Math.floor(Math.random()*courses.length)];choose(pick)}}>Surprise me</button></div>
+  <section className="ka-domains-card"><div className="ka-domains-header"><h2>Browse Khan Academy</h2><button onClick={()=>{const pick=menuCourses[Math.floor(Math.random()*menuCourses.length)];choose(pick)}}>Surprise me</button></div>
    {term? <div className="ka-domain-courses">{filtered.map(c=><button key={c.href+c.title} onClick={()=>choose(c)}><span className={"ka-course-avatar "+c.theme}>{c.symbol}</span><span><b>{c.title}</b><small>{c.group}</small></span><ChevronRight size={18}/></button>)}</div>:
-   <div className="ka-domain-list">{domains.map(d=>{const openDomain=expanded.includes(d);const groups=Array.from(new Set(courses.filter(c=>c.group.split(":")[0].trim()===d).map(c=>c.group)));return <section key={d} className="ka-domain-section"><button className="ka-domain-row" onClick={()=>toggle(d)}><span className={"ka-course-avatar "+categoryTheme(d)}>{iconFor(d)}</span><b>{d}</b><ChevronRight className={openDomain?"expanded":""} size={18}/></button>{openDomain&&<div className="ka-domain-submenu">{groups.map(g=><section key={g}><h3>{g.includes(":")?g.split(":").slice(1).join(":").trim():g}</h3>{courses.filter(c=>c.group===g).map(c=><button key={c.href+c.title} onClick={()=>choose(c)}><span>{c.title}</span><ChevronRight size={16}/></button>)}</section>)}</div>}</section>})}</div>}
+   <div className="ka-domain-list">{domains.map(d=>{const openDomain=expanded.includes(d);const groups=Array.from(new Set(menuCourses.filter(c=>c.group.split(":")[0].trim()===d).map(c=>c.group)));return <section key={d} className="ka-domain-section"><button className="ka-domain-row" onClick={()=>toggle(d)}><span className={"ka-course-avatar "+categoryTheme(d)}>{iconFor(d)}</span><b>{d}</b><ChevronRight className={openDomain?"expanded":""} size={18}/></button>{openDomain&&<div className="ka-domain-submenu">{groups.map(g=><section key={g}><h3>{g.includes(":")?g.split(":").slice(1).join(":").trim():g}</h3>{menuCourses.filter(c=>c.group===g).map(c=><button key={c.href+c.title} onClick={()=>choose(c)}><span>{c.title}</span><ChevronRight size={16}/></button>)}</section>)}</div>}</section>})}</div>}
   </section>
   {term&&filtered.length===0&&<div className="empty large"><Search size={30}/><h2>No results</h2><p>Try another course or topic.</p></div>}
  </div>
