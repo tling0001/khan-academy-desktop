@@ -84,15 +84,19 @@ async fn fetch_khan_explore_menu() -> Result<Vec<serde_json::Value>, String> {
   let mut result = Vec::new();
   for topic in topics {
     let title = topic.get("translatedTitle").and_then(|v|v.as_str()).unwrap_or("Explore").to_string();
+    let domain_id = topic.get("domainId").cloned().unwrap_or(serde_json::Value::Null);
+    let icon = topic.get("icon").cloned().unwrap_or(serde_json::Value::Null);
     let children = topic.get("children").and_then(|v|v.as_array()).cloned().unwrap_or_default();
     let courses: Vec<serde_json::Value> = children.into_iter().filter_map(|child| {
       let href = child.get("href").and_then(|v|v.as_str())?;
-      let course_title = child.get("translatedTitle").and_then(|v|v.as_str()).unwrap_or(href);
-      let mut item = serde_json::json!({"title":course_title,"href":href});
+      let course_title = child.get("translatedTitle").and_then(|v|v.as_str())?;
+      let mut item = serde_json::json!({"translatedTitle":course_title,"href":href});
       if let Some(id) = child.get("courseId") { item["courseId"] = id.clone(); }
       Some(item)
     }).collect();
-    if !courses.is_empty() { result.push(serde_json::json!({"group":title,"courses":courses})); }
+    if !courses.is_empty() {
+      result.push(serde_json::json!({"domainId":domain_id,"translatedTitle":title,"icon":icon,"children":courses}));
+    }
   }
   if result.is_empty() { return Err(format!("Khan Academy returned no learn-menu entries for curriculum {key}")); }
   Ok(result)
