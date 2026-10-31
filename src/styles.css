@@ -177,3 +177,24 @@ main{height:100dvh;min-height:0;background:var(--ka-canvas)}
 /* Explore mirrors Android's search/filter/course-menu interaction instead of promotional subject tiles. */
 .ka-explore{max-width:760px}.ka-explore-heading h1{font-size:26px;margin:4px 0 16px}.ka-explore-search{height:48px;display:flex;align-items:center;gap:12px;padding:0 15px;border:1px solid #cbd3da;border-radius:5px;background:#fff;color:#65727d}.ka-explore-search:focus-within{border-color:#1865f2;box-shadow:0 0 0 2px #1865f220}.ka-explore-search input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:14px;color:#25313c}.ka-explore-search>button{border:0;background:none;color:#65727d}.ka-domains-card{margin-top:22px;background:#fff;border:1px solid #e1e5e9;border-radius:8px;overflow:hidden}.ka-domains-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #e3e7eb}.ka-domains-header h2{font-size:17px;margin:0;font-weight:600}.ka-domains-header>button{border:0;background:transparent;color:#1865f2;font-size:13px;font-weight:600}.ka-domain-section{border-bottom:1px solid #e3e7eb}.ka-domain-section:last-child{border-bottom:0}.ka-domain-row{width:100%;min-height:64px;display:flex;align-items:center;gap:14px;padding:10px 16px;border:0;background:#fff;text-align:left;color:#25313c}.ka-domain-row>b{flex:1;font-size:15px;font-weight:500}.ka-domain-row>svg{color:#6f7a84;transition:transform .2s}.ka-domain-row>svg.expanded{transform:rotate(90deg)}.ka-course-avatar{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:50%;font-size:18px;font-weight:700}.ka-domain-submenu{padding:0 16px 12px 66px;animation:kaExpand .2s ease-out}.ka-domain-submenu section h3{font-size:12px;color:#64717c;margin:8px 0 4px;font-weight:600}.ka-domain-submenu section>button,.ka-domain-courses>button{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border:0;border-bottom:1px solid #edf0f2;background:#fff;text-align:left;color:#25313c;font-size:14px}.ka-domain-submenu section>button:last-child{border-bottom:0}.ka-domain-submenu section>button>svg,.ka-domain-courses>button>svg{color:#87919a}.ka-domain-courses{padding:0 16px}.ka-domain-courses>button{justify-content:flex-start;min-height:64px}.ka-domain-courses>button>span:nth-child(2){flex:1;display:flex;flex-direction:column;gap:4px}.ka-domain-courses b{font-size:14px;font-weight:600}.ka-domain-courses small{font-size:12px;color:#77838d}.ka-recent-search{padding:18px 0 4px;display:flex;flex-direction:column;gap:10px}.ka-recent-search>b{font-size:13px}.ka-recent-search button{display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;color:#596672;padding:4px 0;font-size:13px}@keyframes kaExpand{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(min-width:768px){.android-bottom-tabs button{flex-direction:row;justify-content:center;gap:12px;padding:0 14px}.android-bottom-tabs button>span:last-child{font-size:13px;margin-top:3px}}
+
+/* Android Explore uses two independent full-width cards: domain discovery and expandable course menu. */
+.ka-explore{max-width:820px;padding-top:18px}
+.ka-explore-heading h1{font-size:24px;font-weight:700;margin:4px 0 16px}
+.ka-explore-search{height:48px;border-radius:4px;background:var(--surface,#fff)}
+.ka-android-card,.ka-course-menu-card{margin-top:16px;border:1px solid #e1e5e9;border-radius:7px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.ka-domains-header{min-height:56px;padding:12px 16px;border:0}
+.ka-domains-header h2{font-size:16px;font-weight:700}
+.ka-domains-header .ka-menu-subtitle{font-size:12px;color:#6d7a86}
+.ka-domain-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;padding:0 8px 8px}
+.ka-domain-tile{min-height:62px;display:flex;align-items:center;gap:12px;padding:10px 8px;border:0;border-top:1px solid #edf0f2;background:transparent;text-align:left;color:#25313c}
+.ka-domain-tile b{flex:1;font-size:14px;font-weight:600}
+.ka-domain-tile>svg{color:#89939c}
+.ka-course-menu-card .ka-domain-row{min-height:60px;padding-left:16px}
+.ka-course-menu-card .ka-domain-submenu{padding-left:66px;padding-bottom:8px}
+.ka-course-menu-card .ka-domain-submenu section h3{font-size:12px;letter-spacing:.01em}
+.ka-course-menu-card .ka-domain-submenu section>button{min-height:46px;font-size:14px}
+.ka-menu-status{margin:0;padding:10px 16px 14px;color:#71808b;font-size:12px;overflow-wrap:anywhere}
+@media(min-width:760px){.ka-domain-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.ka-domain-tile{padding:12px 10px}}
+@media(min-width:1100px){.ka-domain-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:560px){.ka-explore{padding:16px 12px 24px}.ka-domain-tiles{grid-template-columns:1fr}.ka-domains-header{padding:12px}.ka-course-menu-card .ka-domain-submenu{padding-left:56px}}

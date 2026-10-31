@@ -13,28 +13,28 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
     return Err("Invalid course identifier".into());
   }
   let query = include_str!("../../src/khanCourseQuery.graphql");
+  // Android calls CourseQueryV8 through its persisted-query cache endpoint (GET),
+  // not the non-cached POST endpoint. The cache URL is keyed by the Android djb2 hash.
   let client = reqwest::Client::builder()
     .user_agent("KhanAcademy/8.5.1 (org.khanacademy.android; Android 35; UnknownDeviceName; Google; phone)")
     .build()
     .map_err(|e| e.to_string())?;
-  let response = client
-    .post("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8")
+  let mut hash: u32 = 5381;
+  for ch in query.chars().rev() { hash = hash.wrapping_mul(33) ^ (ch as u32); }
+  let mut url = reqwest::Url::parse("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish")
+    .map_err(|e| format!("Invalid Khan Academy GraphQL URL: {e}"))?;
+  url.query_pairs_mut()
+    .append_pair("hash", &hash.to_string())
+    .append_pair("variables", &serde_json::json!({"courseId":course_id}).to_string());
+  let response = client.get(url)
     .header("Accept", "application/json")
-    .header("Content-Type", "application/json")
-    // Match the Android client GraphQL transport and its native app origin.
     .header("Origin", "app:org.khanacademy.android")
-    .json(&serde_json::json!({
-      "fromGraphiql": false,
-      "operationName": "CourseQueryV8",
-      "query": query,
-      "variables": { "courseId": course_id }
-    }))
     .send().await.map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
   let status = response.status();
   let response_text = response.text().await
     .map_err(|e| format!("Could not read Khan Academy response: {e}"))?;
   let body: serde_json::Value = serde_json::from_str(&response_text)
-    .map_err(|e| format!("Khan Academy returned HTTP {status} with a non-JSON response: {e}; body: {}", response_text.chars().take(500).collect::<String>()))?;
+    .map_err(|e| format!("Khan Academy persisted CourseQueryV8 returned HTTP {status} with a non-JSON response: {e}; body: {}", response_text.chars().take(500).collect::<String>()))?;
   if !status.is_success() {
     return Err(format!("Khan Academy returned HTTP {status}: {}", body.get("message").and_then(|v|v.as_str()).unwrap_or("request failed")));
   }
