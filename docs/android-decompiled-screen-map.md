@@ -41,3 +41,21 @@ The source's home feed order is assembled from feature selectors: streak, hidden
 React Native primitives must be translated to accessible DOM controls and Tauri-safe navigation. Keep Android's conditional card ordering, data states, and API contracts rather than substituting static marketing content. Preserve the Android large-layout split for unit screens, but adapt the breakpoint to desktop window dimensions. Transition animations should be short and respect `prefers-reduced-motion`.
 
 The current desktop Home screen has been updated to use the Android-derived signed-out feed order and card structure. The empty Recent Lessons state is intentionally the signed-out state; signed-in data loading and real API wiring remain separate work.
+
+
+## Course and unit data contract
+
+The Android course loader is in `module_1100_domainsFetchConfig.js` and the query/normalization logic is in `module_1106_courseDataVersion.js`.
+
+- `fetchCourse(domainId, courseId, forceRefresh)` uses the Redux fetch/cache layer and calls `runCourseQuery(domainId, courseId)`.
+- The operation is named `CourseQueryV8`; Android sends it to `{apiBaseUrl}api/internal/graphql/CourseQueryV8`. The production API base is `https://www.khanacademy.org/`; the app's selected language controls the web base host and language query parameter.
+- The operation variable is `courseId`. The query requests `content.metadata.commitSha` and `topicById(id: $courseId)`.
+- Course fields include `subjectMasteryEnabled`, `masteryEnabled`, parent title, course challenge, and child topics.
+- Each unit includes mastery state, slug, lessons, direct learnable content, quizzes, and unit tests. Each lesson includes child learnable content.
+- Learnable content fields include ID, translated title/description, kind, thumbnail URL, content descriptor, and content ID. Videos additionally include duration, translated YouTube ID, KA URL, download URLs/sizes.
+- Android normalizes Article, Exercise, and Video records into content-item objects with `contentCommitSha`, `topicPath`, parent title, thumbnail, and content ID. Unit and lesson topic paths are retained for content navigation and deep links.
+- Course progress is fetched separately for signed-in users. Android combines the course topic tree with video/article/exercise completion and mastery state before rendering rows.
+- The Unit screen groups lesson content into sections, renders a LessonCardHeader for each lesson, selects PracticeItemCell when mastery filtering says an item is practice content, otherwise LearnItemCell, and includes quiz/unit-test sections. Recommended mastery items can be marked “Up next”.
+- On wide screens Android uses a 298px left-hand unit list beside the flexible content list; on smaller screens it uses a single vertically scrolling collapsing-header screen.
+
+This is the authoritative data shape for the next course/unit-screen port. The desktop implementation should preserve the two-stage fetch (topic tree plus user progress), loading/error/empty states, and the Android item classification instead of inventing course lesson data from the menu labels.
