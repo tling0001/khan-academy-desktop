@@ -20,7 +20,10 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   let response = client
     .post("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8")
     .header("Accept", "application/json")
+    // Match the Android client GraphQL transport and its native app origin.
+    .header("Origin", "app:org.khanacademy.android")
     .json(&serde_json::json!({
+      "fromGraphiql": false,
       "operationName": "CourseQueryV8",
       "query": query,
       "variables": { "courseId": course_id }
