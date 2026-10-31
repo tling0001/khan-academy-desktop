@@ -73,28 +73,28 @@ function Home({open,goCourses,goExplore}:{open:(c:Course)=>void;goCourses:()=>vo
 }
 function CourseCard({course,open}:{course:Course;open:()=>void}){return <button className="coursecard" onClick={open}><div className={"art "+course.theme}><span>{course.symbol||"✦"}</span><small>{course.group}</small></div><div className="cardbody"><small>{course.group}</small><b>{course.title}</b>{course.description&&<p>{course.description}</p>}<div>Open course<ChevronRight size={15}/></div></div></button>}
 function Explore({open}:{open:(c:Course)=>void}){
+ type MenuDomain={domainId:string;translatedTitle:string;icon?:string|null;children:{translatedTitle:string;href:string;courseId?:string}[]};
  const [term,setTerm]=useState(""),[recent,setRecent]=useState<string[]>([]),[expanded,setExpanded]=useState<string[]>([]);
- const [liveCourses,setLiveCourses]=useState<Course[]|null>(null),[menuError,setMenuError]=useState(""),[menuLoading,setMenuLoading]=useState(true);
- useEffect(()=>{let active=true;invoke<{group:string;courses:{title:string;href:string;courseId?:string;icon?:string}[]}[]>("fetch_khan_explore_menu").then(groups=>{if(!active)return;const rows=groups.flatMap(g=>g.courses.map(c=>({title:c.title,group:g.group,href:c.href,courseId:c.courseId,symbol:categorySymbol(g.group),theme:categoryTheme(g.group)})));if(rows.length)setLiveCourses(rows);else setMenuError("Khan Academy returned an empty curriculum menu.");setMenuLoading(false)}).catch(e=>{if(active){setMenuError(String(e));setMenuLoading(false)}});return()=>{active=false}},[]);
- const menuCourses=liveCourses??courses;
- const domains=Array.from(new Set(menuCourses.map(c=>c.group.split(":")[0].trim())));
- const filtered=menuCourses.filter(c=>(c.title+" "+c.group).toLowerCase().includes(term.toLowerCase()));
+ const [liveDomains,setLiveDomains]=useState<MenuDomain[]|null>(null),[menuError,setMenuError]=useState(""),[menuLoading,setMenuLoading]=useState(true);
+ useEffect(()=>{let active=true;invoke<MenuDomain[]>("fetch_khan_explore_menu").then(domains=>{if(!active)return;if(domains.length)setLiveDomains(domains);else setMenuError("Khan Academy returned an empty curriculum menu.");setMenuLoading(false)}).catch(e=>{if(active){setMenuError(String(e));setMenuLoading(false)}});return()=>{active=false}},[]);
+ const domains:MenuDomain[]=liveDomains??Array.from(new Set(courses.map(c=>c.group.split(":")[0].trim()))).map(name=>({domainId:name,translatedTitle:name,children:courses.filter(c=>c.group.split(":")[0].trim()===name).map(c=>({translatedTitle:c.title,href:c.href,courseId:c.courseId}))}));
+ const items:Course[]=domains.flatMap(d=>d.children.map(c=>({title:c.translatedTitle,group:d.translatedTitle,href:c.href,courseId:c.courseId??(androidCourseIds as AndroidCourseIds)[c.href],symbol:categorySymbol(d.translatedTitle),theme:categoryTheme(d.translatedTitle)})));
+ const filtered=items.filter(c=>(c.title+" "+c.group).toLowerCase().includes(term.toLowerCase()));
+ const toggle=(id:string)=>setExpanded(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id]);
  const choose=(c:Course)=>{setRecent(v=>[c.title,...v.filter(x=>x!==c.title)].slice(0,5));open(c)};
- const toggle=(d:string)=>setExpanded(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d]);
- const iconFor=(d:string)=>/Math/.test(d)?"∑":/Science/.test(d)?"⚛":/Computing/.test(d)?"</>":/English/.test(d)?"Aa":/Social/.test(d)?"◷":/Economics/.test(d)?"$":/Test/.test(d)?"✎":"✦";
- const domainMatches=(d:string)=>menuCourses.filter(c=>c.group.split(":")[0].trim()===d);
+ const domainIcon=(icon?:string|null)=>icon?.startsWith("//")?"https:"+icon:icon??"";
  return <div className="content enter ka-explore">
   <div className="ka-explore-heading"><h1>Explore</h1></div>
   <label className="ka-explore-search"><Search size={19}/><input value={term} onChange={e=>setTerm(e.target.value)} placeholder="Search Khan Academy"/>{term&&<button onClick={()=>setTerm("")} aria-label="Clear search"><X size={16}/></button>}</label>
   {!term&&recent.length>0&&<section className="ka-recent-search"><b>Recent searches</b>{recent.map(x=><button key={x} onClick={()=>setTerm(x)}><Clock3 size={15}/>{x}</button>)}</section>}
   {!term&&<section className="ka-domains-card ka-android-card">
-    <div className="ka-domains-header"><h2>Browse Khan Academy</h2><button onClick={()=>{const pick=menuCourses[Math.floor(Math.random()*menuCourses.length)];if(pick)choose(pick)}}>Surprise me</button></div>
-    <div className="ka-domain-tiles">{domains.map(d=><button key={d} className="ka-domain-tile" onClick={()=>setExpanded(v=>v.includes(d)?v.filter(x=>x!==d):[...v,d])}><span className={"ka-course-avatar "+categoryTheme(d)}>{iconFor(d)}</span><b>{d}</b><ChevronRight size={17}/></button>)}</div>
+    <div className="ka-domains-header"><h2>Browse Khan Academy</h2><button onClick={()=>{const pick=items[Math.floor(Math.random()*items.length)];if(pick)choose(pick)}}>Surprise me</button></div>
+    <div className="ka-domain-tiles">{domains.map(d=><button key={d.domainId} className="ka-domain-tile" onClick={()=>{const first=d.children[0];if(first)external(first.href)}}>{d.icon&&<img className="ka-domain-image" src={domainIcon(d.icon)} alt=""/>}<b>{d.translatedTitle}</b><ChevronRight size={17}/></button>)}</div>
   </section>}
   <section className="ka-domains-card ka-course-menu-card">
-   <div className="ka-domains-header"><h2>{term?"Search results":"Browse courses"}</h2>{!term&&<span className="ka-menu-subtitle">Choose a subject to see its courses</span>}</div>
+   <div className="ka-domains-header"><h2>Browse Khan Academy</h2></div>
    {term?<div className="ka-domain-courses">{filtered.map(c=><button key={c.href+c.title} onClick={()=>choose(c)}><span className={"ka-course-avatar "+c.theme}>{c.symbol}</span><span><b>{c.title}</b><small>{c.group}</small></span><ChevronRight size={18}/></button>)}</div>:
-    <div className="ka-domain-list">{domains.map(d=>{const openDomain=expanded.includes(d),items=domainMatches(d),groups=Array.from(new Set(items.map(c=>c.group)));return <section key={d} className="ka-domain-section"><button className="ka-domain-row" onClick={()=>toggle(d)}><span className={"ka-course-avatar "+categoryTheme(d)}>{iconFor(d)}</span><b>{d}</b><ChevronRight className={openDomain?"expanded":""} size={18}/></button>{openDomain&&<div className="ka-domain-submenu">{groups.map(g=><section key={g}>{g.includes(":")&&<h3>{g.split(":").slice(1).join(":").trim()}</h3>}{items.filter(c=>c.group===g).map(c=><button key={c.href+c.title} onClick={()=>choose(c)}><span>{c.title}</span><ChevronRight size={16}/></button>)}</section>)}</div>}</section>})}</div>}
+    <div className="ka-domain-list">{domains.map(d=>{const expandedDomain=expanded.includes(d.domainId);return <section key={d.domainId} className="ka-domain-section"><button className="ka-domain-row" onClick={()=>toggle(d.domainId)}>{d.icon?<img className="ka-domain-image" src={domainIcon(d.icon)} alt=""/>:<span className={"ka-course-avatar "+categoryTheme(d.translatedTitle)}>{categorySymbol(d.translatedTitle)}</span>}<b>{d.translatedTitle}</b><ChevronRight className={expandedDomain?"expanded":""} size={18}/></button>{expandedDomain&&<div className="ka-domain-submenu">{d.children.map(child=>{const c=items.find(item=>item.href===child.href&&item.title===child.translatedTitle);return <button key={child.href+child.translatedTitle} onClick={()=>c&&choose(c)}><span>{child.translatedTitle}</span><ChevronRight size={16}/></button>})}</div>}</section>})}</div>}
    {menuLoading&&<p className="ka-menu-status">Loading courses…</p>}{menuError&&<p className="ka-menu-status">Could not refresh the curriculum: {menuError}. Showing the Android 8.5.1 menu.</p>}
   </section>
   {term&&filtered.length===0&&<div className="empty large"><Search size={30}/><h2>No results</h2><p>Try another course or topic.</p></div>}

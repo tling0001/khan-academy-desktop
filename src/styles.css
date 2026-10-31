@@ -198,3 +198,6 @@ main{height:100dvh;min-height:0;background:var(--ka-canvas)}
 @media(min-width:760px){.ka-domain-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.ka-domain-tile{padding:12px 10px}}
 @media(min-width:1100px){.ka-domain-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:560px){.ka-explore{padding:16px 12px 24px}.ka-domain-tiles{grid-template-columns:1fr}.ka-domains-header{padding:12px}.ka-course-menu-card .ka-domain-submenu{padding-left:56px}}
+
+/* Domain avatars follow Android's small square ItemAvatar treatment. */
+.ka-domain-image{width:32px;height:32px;flex:0 0 32px;object-fit:contain;border-radius:4px}.ka-domain-tiles{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 16px 12px}.ka-domain-tile{min-height:68px;gap:12px;padding:10px 4px}.ka-domain-tile b{font-size:14px;font-weight:500}.ka-course-menu-card .ka-domains-header{padding:16px 24px}.ka-course-menu-card .ka-domain-row{min-height:56px;padding:10px 16px}.ka-course-menu-card .ka-domain-submenu{padding:0 16px 8px 64px}.ka-course-menu-card .ka-domain-submenu section>button{min-height:44px}.ka-domain-section:last-child{border-bottom:0}
