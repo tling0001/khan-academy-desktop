@@ -89,7 +89,7 @@ function Explore({open}:{open:(c:Course)=>void}){
   {!term&&recent.length>0&&<section className="ka-recent-search"><b>Recent searches</b>{recent.map(x=><button key={x} onClick={()=>setTerm(x)}><Clock3 size={15}/>{x}</button>)}</section>}
   {!term&&<section className="ka-domains-card ka-android-card">
     <div className="ka-domains-header"><h2>Browse Khan Academy</h2><button onClick={()=>{const pick=items[Math.floor(Math.random()*items.length)];if(pick)choose(pick)}}>Surprise me</button></div>
-    <div className="ka-domain-tiles">{domains.map(d=><button key={d.domainId} className="ka-domain-tile" onClick={()=>{const first=d.children[0];if(first)external(first.href)}}>{d.icon&&<img className="ka-domain-image" src={domainIcon(d.icon)} alt=""/>}<b>{d.translatedTitle}</b><ChevronRight size={17}/></button>)}</div>
+    <div className="ka-domain-tiles">{domains.map(d=>{const isOpen=expanded.includes("top:"+d.domainId);return <div className="ka-domain-tile-group" key={d.domainId}><button className="ka-domain-tile" aria-expanded={isOpen} onClick={()=>toggle("top:"+d.domainId)}>{d.icon&&<img className="ka-domain-image" src={domainIcon(d.icon)} alt=""/>}<b>{d.translatedTitle}</b><ChevronRight className={isOpen?"expanded":""} size={17}/></button>{isOpen&&<div className="ka-domain-tile-children">{d.children.map(child=>{const c=items.find(item=>item.href===child.href&&item.title===child.translatedTitle);return <button key={child.href+child.translatedTitle} onClick={()=>c?choose(c):external(child.href)}>{child.translatedTitle}<ChevronRight size={14}/></button>})}</div>}</div>})}</div>
   </section>}
   <section className="ka-domains-card ka-course-menu-card">
    <div className="ka-domains-header"><h2>Browse Khan Academy</h2></div>

@@ -201,3 +201,23 @@ main{height:100dvh;min-height:0;background:var(--ka-canvas)}
 
 /* Domain avatars follow Android's small square ItemAvatar treatment. */
 .ka-domain-image{width:32px;height:32px;flex:0 0 32px;object-fit:contain;border-radius:4px}.ka-domain-tiles{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 16px 12px}.ka-domain-tile{min-height:68px;gap:12px;padding:10px 4px}.ka-domain-tile b{font-size:14px;font-weight:500}.ka-course-menu-card .ka-domains-header{padding:16px 24px}.ka-course-menu-card .ka-domain-row{min-height:56px;padding:10px 16px}.ka-course-menu-card .ka-domain-submenu{padding:0 16px 8px 64px}.ka-course-menu-card .ka-domain-submenu section>button{min-height:44px}.ka-domain-section:last-child{border-bottom:0}
+
+/* Explore spacing override: generic content section padding must not leak into Explore cards. */
+.ka-explore > section{padding-top:0!important}
+.ka-explore .ka-domains-card{padding-top:0!important}
+.ka-explore .ka-domains-header{padding:12px 16px!important}
+.ka-explore .ka-domain-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;padding:0 12px 12px}
+.ka-explore .ka-domain-tile-group{min-width:0;border-top:1px solid #edf0f2}
+.ka-explore .ka-domain-tile{width:100%;min-width:0;min-height:64px;padding:10px 8px;border:0;background:transparent}
+.ka-explore .ka-domain-tile>svg{flex:0 0 auto;transition:transform .2s}
+.ka-explore .ka-domain-tile>svg.expanded{transform:rotate(90deg)}
+.ka-explore .ka-domain-tile-children{padding:0 8px 8px 48px;animation:kaExpand .2s ease-out}
+.ka-explore .ka-domain-tile-children button{width:100%;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border:0;border-top:1px solid #edf0f2;background:transparent;color:#394653;text-align:left;font-size:13px}
+.ka-explore .ka-domain-list{padding:0}
+.ka-explore .ka-domain-submenu{padding:0 16px 10px 66px}
+.ka-explore .ka-domain-submenu>button{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border:0;border-bottom:1px solid #edf0f2;background:transparent;color:#25313c;text-align:left;font-size:14px}
+.ka-explore .ka-domain-submenu>button:last-child{border-bottom:0}
+.ka-explore .ka-domain-row:hover,.ka-explore .ka-domain-tile:hover{background:#f7f9fb}
+@media(min-width:760px){.ka-explore .ka-domain-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1100px){.ka-explore .ka-domain-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:560px){.ka-explore .ka-domain-tiles{grid-template-columns:1fr}}

@@ -13,39 +13,25 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
     return Err("Invalid course identifier".into());
   }
   let query = include_str!("../../src/khanCourseQuery.graphql");
-  // Android calls CourseQueryV8 through its persisted-query cache endpoint (GET),
-  // not the non-cached POST endpoint. The cache URL is keyed by the Android djb2 hash.
+  // Match Android graphqlFetch POST. The previous locally-computed persisted-query hash was not registered.
   let client = reqwest::Client::builder()
     .user_agent("KhanAcademy/8.5.1 (org.khanacademy.android; Android 35; UnknownDeviceName; Google; phone)")
-    .build()
-    .map_err(|e| e.to_string())?;
-  let mut hash: u32 = 5381;
-  for ch in query.chars().rev() { hash = hash.wrapping_mul(33) ^ (ch as u32); }
-  let mut url = reqwest::Url::parse("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish")
-    .map_err(|e| format!("Invalid Khan Academy GraphQL URL: {e}"))?;
-  url.query_pairs_mut()
-    .append_pair("hash", &hash.to_string())
-    .append_pair("variables", &serde_json::json!({"courseId":course_id}).to_string());
-  let response = client.get(url)
+    .build().map_err(|e| e.to_string())?;
+  let response = client.post("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8")
     .header("Accept", "application/json")
+    .header("Content-Type", "application/json")
     .header("Origin", "app:org.khanacademy.android")
+    .json(&serde_json::json!({"fromGraphiql":false,"variables":{"courseId":course_id},"operationName":"CourseQueryV8","query":query}))
     .send().await.map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
   let status = response.status();
-  let response_text = response.text().await
-    .map_err(|e| format!("Could not read Khan Academy response: {e}"))?;
+  let response_text = response.text().await.map_err(|e| format!("Could not read Khan Academy response: {e}"))?;
   if !status.is_success() {
-    let detail = serde_json::from_str::<serde_json::Value>(&response_text)
-      .ok()
-      .and_then(|body| body.get("message").and_then(|v|v.as_str()).map(str::to_owned))
-      .unwrap_or_else(|| response_text.chars().take(800).collect());
+    let detail = serde_json::from_str::<serde_json::Value>(&response_text).ok().and_then(|body| body.get("message").and_then(|v|v.as_str()).map(str::to_owned)).unwrap_or_else(|| response_text.chars().take(800).collect());
     return Err(format!("Khan Academy CourseQueryV8 returned HTTP {status}: {detail}"));
   }
-  let body: serde_json::Value = serde_json::from_str(&response_text)
-    .map_err(|e| format!("Khan Academy CourseQueryV8 returned invalid JSON: {e}; body: {}", response_text.chars().take(800).collect::<String>()))?;
+  let body: serde_json::Value = serde_json::from_str(&response_text).map_err(|e| format!("Khan Academy CourseQueryV8 returned invalid JSON: {e}; body: {}", response_text.chars().take(800).collect::<String>()))?;
   if let Some(errors) = body.get("errors") {
-    return Err(errors.as_array().unwrap_or(&vec![]).iter()
-      .filter_map(|e| e.get("message").and_then(|m|m.as_str()))
-      .collect::<Vec<_>>().join("; "));
+    return Err(errors.as_array().unwrap_or(&vec![]).iter().filter_map(|e| e.get("message").and_then(|m|m.as_str())).collect::<Vec<_>>().join("; "));
   }
   Ok(body)
 }
