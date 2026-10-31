@@ -40,7 +40,7 @@ async fn start_device_auth() -> Result<serde_json::Value, String> {
     return Err(format!("Khan Academy device authorization failed: {error}"));
   }
   for key in ["userCode","deviceCode","verificationUrl","expiresAt","intervalSeconds"] {
-    if request.get(key).is_none_or(|v| v.is_null()) {
+    if request.get(key).map_or(true, |v| v.is_null()) {
       return Err(format!("Khan Academy device authorization response omitted {key}"));
     }
   }
@@ -89,8 +89,10 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   let variables = serde_json::json!({"courseId": course_id});
   let variables_json = serde_json::to_string(&variables).map_err(|e| e.to_string())?;
   let client = khan_client()?;
-  let url = format!("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish&hash={hash}&variables={}", urlencoding_not_needed(&variables_json));
-  let response = client.get(&url).header("Accept", "application/json")
+  let mut url = reqwest::Url::parse("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish")
+    .map_err(|e| e.to_string())?;
+  url.query_pairs_mut().append_pair("hash", &hash.to_string()).append_pair("variables", &variables_json);
+  let response = client.get(url).header("Accept", "application/json")
     .header("Origin", "app:org.khanacademy.android").send().await
     .map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
   let status = response.status();
