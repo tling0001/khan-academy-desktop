@@ -1,3 +1,124 @@
-fragment TopicBaseFragment on Topic{id translatedTitle translatedDescription iconPath largeIconPath curriculum{key name country region}}
-fragment LessonChild on LearnableContent{id translatedTitle translatedDescription kind thumbnailUrl contentDescriptor contentId ... on Video{duration downloadUrls translatedYoutubeId kaUrl youtubeId downloadSizes}}
-query CourseQueryV8($courseId:String!){content{metadata{commitSha}} topicById(id:$courseId){...TopicBaseFragment subjectMasteryEnabled masteryEnabled parent{parentTitle:translatedTitle} courseChallenge{exerciseLength timeEstimate{lowerBound upperBound}} children(mobileBlacklistVersion:1){__typename ...LessonChild ... on Topic{...TopicBaseFragment masteryEnabled slug children(mobileBlacklistVersion:1){__typename ...LessonChild ... on TopicQuiz{slug progressKey timeEstimate{lowerBound upperBound} exerciseLength coveredExercises{id} coveredTutorials{id key}} ... on TopicUnitTest{slug progressKey timeEstimate{lowerBound upperBound} exerciseLength coveredExercises{id} coveredTutorials{id key}} ... on Topic{...TopicBaseFragment children(mobileBlacklistVersion:1){__typename ...LessonChild}}}}}}}
+fragment TopicBaseFragment on Topic {
+  __typename
+  id
+  translatedTitle
+  translatedDescription
+  iconPath
+  largeIconPath
+  curriculum {
+    __typename
+    key
+    name
+    country
+    region
+  }
+}
+fragment LessonChild on LearnableContent {
+  __typename
+  id
+  translatedTitle
+  translatedDescription
+  kind
+  thumbnailUrl
+  contentDescriptor
+  contentId
+  ... on Video {
+    __typename
+    duration
+    downloadUrls
+    translatedYoutubeId
+    kaUrl
+    youtubeId
+    downloadSizes
+  }
+}
+query CourseQueryV8($courseId: String!) {
+  content {
+    __typename
+    metadata {
+      __typename
+      commitSha
+    }
+  }
+  topicById(id: $courseId) {
+    __typename
+    ...TopicBaseFragment
+    subjectMasteryEnabled
+    masteryEnabled
+    parent {
+      __typename
+      parentTitle: translatedTitle
+    }
+    courseChallenge {
+      __typename
+      exerciseLength
+      timeEstimate {
+        __typename
+        lowerBound
+        upperBound
+      }
+    }
+    children(mobileBlacklistVersion: 1) {
+      __typename
+      ...LessonChild
+      ... on Topic {
+        __typename
+        ...TopicBaseFragment
+        masteryEnabled
+        slug
+        children(mobileBlacklistVersion: 1) {
+          __typename
+          ...LessonChild
+          ... on TopicQuiz {
+            __typename
+            slug
+            progressKey
+            timeEstimate {
+              __typename
+              lowerBound
+              upperBound
+            }
+            exerciseLength
+            coveredExercises {
+              __typename
+              id
+            }
+            coveredTutorials {
+              __typename
+              id
+              key
+            }
+          }
+          ... on TopicUnitTest {
+            __typename
+            slug
+            progressKey
+            timeEstimate {
+              __typename
+              lowerBound
+              upperBound
+            }
+            exerciseLength
+            coveredExercises {
+              __typename
+              id
+            }
+            coveredTutorials {
+              __typename
+              id
+              key
+            }
+          }
+          ... on Topic {
+            __typename
+            ...TopicBaseFragment
+            children(mobileBlacklistVersion: 1) {
+              __typename
+              ...LessonChild
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -33,11 +33,15 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   let status = response.status();
   let response_text = response.text().await
     .map_err(|e| format!("Could not read Khan Academy response: {e}"))?;
-  let body: serde_json::Value = serde_json::from_str(&response_text)
-    .map_err(|e| format!("Khan Academy persisted CourseQueryV8 returned HTTP {status} with a non-JSON response: {e}; body: {}", response_text.chars().take(500).collect::<String>()))?;
   if !status.is_success() {
-    return Err(format!("Khan Academy returned HTTP {status}: {}", body.get("message").and_then(|v|v.as_str()).unwrap_or("request failed")));
+    let detail = serde_json::from_str::<serde_json::Value>(&response_text)
+      .ok()
+      .and_then(|body| body.get("message").and_then(|v|v.as_str()).map(str::to_owned))
+      .unwrap_or_else(|| response_text.chars().take(800).collect());
+    return Err(format!("Khan Academy CourseQueryV8 returned HTTP {status}: {detail}"));
   }
+  let body: serde_json::Value = serde_json::from_str(&response_text)
+    .map_err(|e| format!("Khan Academy CourseQueryV8 returned invalid JSON: {e}; body: {}", response_text.chars().take(800).collect::<String>()))?;
   if let Some(errors) = body.get("errors") {
     return Err(errors.as_array().unwrap_or(&vec![]).iter()
       .filter_map(|e| e.get("message").and_then(|m|m.as_str()))
