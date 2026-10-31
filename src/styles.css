@@ -8,3 +8,51 @@
 .menu-course:hover{background:#f4f8f7;color:#087f63;padding-left:17px}
 .menu-course svg{color:#87939d;flex:0 0 auto}
 @keyframes menu-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Android 8.5.1 home feed: HomeScreenWithVisibilityTracking + HomeUpsellCard */
+.android-home{max-width:1000px;padding-top:24px}
+.android-home>section{padding-top:0!important;margin-bottom:16px}
+.android-upsell{min-height:210px;position:relative;display:flex;align-items:stretch;overflow:hidden;border-radius:4px;box-shadow:0 1px 3px #142b3b24}
+.upsell-copy{width:38%;padding:28px 30px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;z-index:1}
+.upsell-copy h2{font-size:23px;line-height:1.2;letter-spacing:-.35px;margin:0 0 12px;color:inherit}
+.upsell-copy p{font-size:14px;line-height:1.5;margin:0 0 18px;color:inherit;opacity:.88;max-width:390px}
+.upsell-copy .primary{min-width:138px}
+.upsell-illustration{width:62%;min-height:210px;position:relative;display:flex;align-items:center;justify-content:center}
+.welcome-card{background:#5ba26f;color:#fff}
+.welcome-illustration{background:radial-gradient(ellipse at 55% 52%,#ffffff30 0 25%,transparent 26%),linear-gradient(120deg,#5ba26f,#78b888)}
+.welcome-orbit{position:absolute;width:270px;height:150px;border:1px solid #ffffff70;border-radius:50%;transform:rotate(-18deg)}
+.welcome-book{width:112px;height:105px;border-radius:23px;background:#fff;color:#398653;display:grid;place-items:center;transform:rotate(-8deg);box-shadow:0 12px 32px #244b2e35}
+.welcome-illustration>span{position:absolute;right:18%;top:13%;font-size:42px;color:#ffe08c}
+.welcome-illustration>i{position:absolute;left:18%;bottom:12%;font-size:30px;color:#e3f3e4}
+.android-home-card{background:var(--surface,#fff);border-radius:4px;border:1px solid #e2e7eb;box-shadow:0 1px 2px #142b3b12;overflow:hidden}
+.android-card-header{min-height:58px;padding:16px 20px;display:flex;align-items:center;border-bottom:1px solid #e9edf0}
+.android-card-header h2{font-size:18px;margin:0;font-weight:700}
+.android-empty-state{min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#7a8791}
+.android-empty-state>span{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#f0f4f6;color:#7b8993}
+.android-empty-state p{font-size:13px;margin:0}
+.curriculum-card{background:#f7f2ea;color:#26333d}
+.curriculum-illustration{background:radial-gradient(circle at center,#fff8 0 32%,transparent 33%);color:#b17d42}
+.curriculum-illustration>span{position:absolute;right:23%;top:22%;font-size:30px;color:#d49a50}
+.curriculum-illustration>i{position:absolute;left:24%;bottom:20%;font-size:28px;color:#8d6baf;font-style:normal;font-weight:700}
+.kids-card{background:#d4eaf1;color:#233b48}
+.kids-illustration{color:#397e91;background:radial-gradient(circle at 50% 50%,#fff9 0 30%,transparent 31%)}
+.kids-illustration>span{position:absolute;right:23%;top:20%;font-size:35px;color:#efb74c}
+.kids-illustration>i{position:absolute;left:24%;bottom:20%;font-size:30px;color:#dc7f91;font-style:normal}
+.dismiss-card{position:absolute;z-index:2;right:8px;top:8px;width:28px;height:28px;border:0;border-radius:50%;background:#ffffffdf;color:#52616c;display:grid;place-items:center}
+.android-home-browse{padding-top:12px!important}
+.home-browse-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.home-explore-link{margin-top:12px;border:0;background:none;color:#1760df;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px;padding:8px 0}
+@media(max-width:760px){
+ .android-home{padding-top:16px}
+ .android-upsell{display:flex;flex-direction:column-reverse;min-height:0}
+ .upsell-copy{width:100%;padding:22px 20px 24px;align-items:center;text-align:center}
+ .upsell-copy h2{font-size:20px;margin-bottom:8px}
+ .upsell-copy p{font-size:13px;margin-bottom:14px}
+ .upsell-illustration{width:100%;min-height:142px}
+ .welcome-book{width:82px;height:76px;border-radius:17px}
+ .welcome-book svg{width:54px}
+ .welcome-orbit{width:210px;height:112px}
+ .curriculum-illustration>svg,.kids-illustration>svg{width:58px}
+ .home-browse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:440px){.home-browse-grid{grid-template-columns:1fr}.android-card-header{padding:14px 16px}}
