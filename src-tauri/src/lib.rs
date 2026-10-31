@@ -14,7 +14,8 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   }
   // Android sends CourseQueryV8 through the persisted-query cache endpoint.
   // The hash is computed from the printed document after Apollo's addTypename transform.
-  let query = include_str!("../../src/khanCourseQuery.graphql").trim();
+  // GraphQL's Document printer appends one final newline; include it in the persisted hash.
+  let query = format!("{}\n", include_str!("../../src/khanCourseQuery.graphql"));
   let mut hash: u32 = 5381;
   for ch in query.chars().rev() {
     hash = hash.wrapping_mul(33) ^ (ch as u32);
