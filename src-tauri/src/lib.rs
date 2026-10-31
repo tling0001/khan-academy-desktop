@@ -1,8 +1,77 @@
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+static KHAN_COOKIE_JAR: OnceLock<Arc<reqwest::cookie::Jar>> = OnceLock::new();
+
+fn khan_client() -> Result<reqwest::Client, String> {
+  let jar = KHAN_COOKIE_JAR.get_or_init(|| Arc::new(reqwest::cookie::Jar::default())).clone();
+  reqwest::Client::builder()
+    .cookie_provider(jar)
+    .user_agent("KhanAcademy/8.5.1 (org.khanacademy.android; Android 35; UnknownDeviceName; Google; phone)")
+    .build().map_err(|e| format!("Could not initialize Khan Academy client: {e}"))
+}
+
+async fn khan_graphql_post(operation: &str, query: &str, variables: serde_json::Value) -> Result<serde_json::Value, String> {
+  let client = khan_client()?;
+  let url = format!("https://www.khanacademy.org/api/internal/graphql/{operation}");
+  let response = client.post(url).header("Accept", "application/json")
+    .header("Content-Type", "application/json")
+    .header("Origin", "app:org.khanacademy.android")
+    .json(&serde_json::json!({"fromGraphiql":false,"operationName":operation,"query":query,"variables":variables}))
+    .send().await.map_err(|e| format!("{operation} request failed: {e}"))?;
+  let status = response.status();
+  let text = response.text().await.map_err(|e| format!("{operation} response could not be read: {e}"))?;
+  if !status.is_success() {
+    return Err(format!("{operation} returned HTTP {status}: {}", text.chars().take(1000).collect::<String>()));
+  }
+  let value: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("{operation} returned invalid JSON: {e}"))?;
+  if let Some(errors) = value.get("errors") {
+    return Err(format!("{operation} GraphQL error: {errors}"));
+  }
+  Ok(value)
+}
+
+#[tauri::command]
+async fn start_device_auth() -> Result<serde_json::Value, String> {
+  // Android initializes a phantom account before requesting a device authorization code.
+  let phantom = "mutation LoginAsPhantomMutation { forcePhantom { user { kaid avatarUrl } error { code } } }";
+  let _ = khan_graphql_post("LoginAsPhantomMutation", phantom, serde_json::json!({})).await?;
+  let query = "mutation StartDeviceAuthMutation($input: StartDeviceAuthInput) { startDeviceAuth(input: $input) { userCode deviceCode verificationUrl expiresAt intervalSeconds error { code } } }";
+  let result = khan_graphql_post("StartDeviceAuthMutation", query, serde_json::json!({"input":{"deviceModel":"Khan Academy Desktop"}})).await?;
+  let request = result.pointer("/data/startDeviceAuth").cloned().ok_or("Khan Academy did not return a device authorization request")?;
+  if let Some(error) = request.get("error").filter(|v| !v.is_null()) {
+    return Err(format!("Khan Academy device authorization failed: {error}"));
+  }
+  for key in ["userCode","deviceCode","verificationUrl","expiresAt","intervalSeconds"] {
+    if request.get(key).is_none_or(|v| v.is_null()) {
+      return Err(format!("Khan Academy device authorization response omitted {key}"));
+    }
+  }
+  Ok(request)
+}
+
+#[tauri::command]
+async fn poll_device_auth(device_code: String) -> Result<serde_json::Value, String> {
+  if device_code.trim().is_empty() { return Err("Missing device authorization code".into()); }
+  let query = "mutation DeviceAuthTokenMutation($deviceCode: String!) { login: loginWithDeviceAuthToken(deviceCode: $deviceCode) { user { kaid nickname username avatarUrl points includesDistrictOwnedData isPhantom isChild isTeacher isParent hasCoach canModifyCoaches badgeCounts } error { code } } }";
+  let result = khan_graphql_post("DeviceAuthTokenMutation", query, serde_json::json!({"deviceCode":device_code})).await?;
+  let login = result.pointer("/data/login").cloned().unwrap_or(serde_json::Value::Null);
+  if let Some(code) = login.pointer("/error/code").and_then(|v|v.as_str()) {
+    return match code {
+      "AUTHORIZATION_PENDING" | "SLOW_DOWN" | "TOO_MANY_REQUESTS" => Ok(serde_json::json!({"status":"pending"})),
+      "EXPIRED" => Ok(serde_json::json!({"status":"expired"})),
+      "DENIED" => Ok(serde_json::json!({"status":"denied"})),
+      other => Err(format!("Khan Academy sign-in failed: {other}")),
+    };
+  }
+  if let Some(user) = login.get("user").filter(|v| !v.is_null()) {
+    return Ok(serde_json::json!({"status":"success","user":user}));
+  }
+  Ok(serde_json::json!({"status":"pending"}))
+}
+
+use std::sync::{Arc, OnceLock};\n#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
-    .invoke_handler(tauri::generate_handler![fetch_khan_course, fetch_khan_explore_menu])
+    .invoke_handler(tauri::generate_handler![fetch_khan_course, fetch_khan_explore_menu, start_device_auth, poll_device_auth])
     .run(tauri::generate_context!())
     .expect("error while running Khan Academy Desktop");
 }
@@ -12,41 +81,54 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   if course_id.trim().is_empty() || course_id.len() > 128 {
     return Err("Invalid course identifier".into());
   }
-  // Android sends CourseQueryV8 through the persisted-query cache endpoint.
-  // The hash is computed from the printed document after Apollo's addTypename transform.
-  // GraphQL's Document printer appends one final newline; include it in the persisted hash.
-  let query = format!("{}\n", include_str!("../../src/khanCourseQuery.graphql"));
+  let query = format!("{}\\n", include_str!("../../src/khanCourseQuery.graphql"));
   let mut hash: u32 = 5381;
   for ch in query.chars().rev() {
     hash = hash.wrapping_mul(33) ^ (ch as u32);
   }
   let variables = serde_json::json!({"courseId": course_id});
   let variables_json = serde_json::to_string(&variables).map_err(|e| e.to_string())?;
-  let client = reqwest::Client::builder()
-    .user_agent("KhanAcademy/8.5.1 (org.khanacademy.android; Android 35; UnknownDeviceName; Google; phone)")
-    .build().map_err(|e| e.to_string())?;
-  let mut url = reqwest::Url::parse("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish")
-    .map_err(|e| e.to_string())?;
-  url.query_pairs_mut()
-    .append_pair("hash", &hash.to_string())
-    .append_pair("variables", &variables_json);
-  let response = client.get(url)
-    .header("Accept", "application/json")
-    .header("Origin", "app:org.khanacademy.android")
-    .send().await.map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
+  let client = khan_client()?;
+  let url = format!("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish&hash={hash}&variables={}", urlencoding_not_needed(&variables_json));
+  let response = client.get(&url).header("Accept", "application/json")
+    .header("Origin", "app:org.khanacademy.android").send().await
+    .map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
   let status = response.status();
-  let response_text = response.text().await.map_err(|e| format!("Could not read Khan Academy response: {e}"))?;
-  if !status.is_success() {
-    let detail = serde_json::from_str::<serde_json::Value>(&response_text).ok().and_then(|body| body.get("message").and_then(|v|v.as_str()).map(str::to_owned)).unwrap_or_else(|| response_text.chars().take(800).collect());
-    return Err(format!("Khan Academy CourseQueryV8 returned HTTP {status}: {detail}"));
-  }
-  let body: serde_json::Value = serde_json::from_str(&response_text).map_err(|e| format!("Khan Academy CourseQueryV8 returned invalid JSON: {e}; body: {}", response_text.chars().take(800).collect::<String>()))?;
+  let text = response.text().await.map_err(|e| format!("Could not read course response: {e}"))?;
+  // Android's persisted GET is an optimization, not the only way to execute this query.
+  // When the server has evicted/does not recognize the persisted hash, retry as a normal
+  // GraphQL POST exactly as graphqlFetch does for non-cacheable operations.
+  let body_text = if status.as_u16() == 400 && text.contains("No query found for this hash") {
+    let endpoint = "https://www.khanacademy.org/api/internal/graphql/CourseQueryV8";
+    let fallback = client.post(endpoint).header("Accept", "application/json")
+      .header("Content-Type", "application/json")
+      .header("Origin", "app:org.khanacademy.android")
+      .json(&serde_json::json!({
+        "fromGraphiql": false,
+        "operationName": "CourseQueryV8",
+        "query": query,
+        "variables": variables
+      })).send().await.map_err(|e| format!("Persisted query was unavailable and GraphQL POST failed: {e}"))?;
+    let fallback_status = fallback.status();
+    let fallback_text = fallback.text().await.map_err(|e| format!("Could not read GraphQL POST response: {e}"))?;
+    if !fallback_status.is_success() {
+      return Err(format!("Khan Academy CourseQueryV8 POST returned HTTP {fallback_status}: {}", fallback_text.chars().take(1000).collect::<String>()));
+    }
+    fallback_text
+  } else {
+    if !status.is_success() {
+      return Err(format!("Khan Academy CourseQueryV8 returned HTTP {status}: {}", text.chars().take(1000).collect::<String>()));
+    }
+    text
+  };
+  let body: serde_json::Value = serde_json::from_str(&body_text)
+    .map_err(|e| format!("Khan Academy CourseQueryV8 returned invalid JSON: {e}; body: {}", body_text.chars().take(800).collect::<String>()))?;
   if let Some(errors) = body.get("errors") {
-    return Err(errors.as_array().unwrap_or(&vec![]).iter().filter_map(|e| e.get("message").and_then(|m|m.as_str())).collect::<Vec<_>>().join("; "));
+    let messages = errors.as_array().map(|items| items.iter().filter_map(|e|e.get("message").and_then(|m|m.as_str())).collect::<Vec<_>>().join("; ")).unwrap_or_else(|| errors.to_string());
+    return Err(format!("Khan Academy CourseQueryV8 GraphQL error: {messages}"));
   }
   Ok(body)
 }
-
 
 #[tauri::command]
 async fn fetch_khan_explore_menu() -> Result<Vec<serde_json::Value>, String> {
