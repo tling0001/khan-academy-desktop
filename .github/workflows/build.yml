@@ -33,7 +33,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: npm install
       - name: Generate platform icons from official Android launcher PNG
-        run: npm run tauri -- icon src-tauri/icons/android-launcher.png
+        run: npm run tauri -- icon src-tauri/icons/android-launcher.png --output src-tauri/icons
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
