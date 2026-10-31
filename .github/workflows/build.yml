@@ -32,6 +32,8 @@ jobs:
           node-version: 22
       - uses: dtolnay/rust-toolchain@stable
       - run: npm install
+      - name: Generate platform icons from Android-derived Khan Academy artwork
+        run: npm run tauri -- icon src-tauri/icons/khan-academy.svg
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
