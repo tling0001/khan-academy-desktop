@@ -59,18 +59,12 @@ function Home({open,goCourses,goExplore}:{open:(c:Course)=>void;goCourses:()=>vo
       <div className="upsell-copy">
         <h2>Khan Academy Kids</h2>
         <p>Get our free, award-winning app for kids ages 2–8.</p>
-        <button className="primary" onClick={()=>external("https://play.google.com/store/apps/details?id=org.khankids.android")}>Download now <ArrowUpRight size={15}/></button>
+        <button className="primary" onClick={()=>window.open("https://play.google.com/store/apps/details?id=org.khankids.android","_blank","noopener,noreferrer")}>Download now <ArrowUpRight size={15}/></button>
       </div>
       <div className="upsell-illustration kids-illustration" aria-hidden="true"><span>★</span><BookOpen size={65}/><i>♥</i></div>
     </section>}
 
-    <section className="android-home-browse">
-      <Heading eyebrow="KEEP LEARNING" title="Explore Khan Academy" action="Browse courses" onAction={goCourses}/>
-      <div className="home-browse-grid">
-        {courses.slice(0,4).map(c=><CourseCard key={c.title} course={c} open={()=>open(c)}/>)}
-      </div>
-      <button className="home-explore-link" onClick={goExplore}>Explore all subjects <ChevronRight size={16}/></button>
-    </section>
+
   </div>;
 }
 function CourseCard({course,open}:{course:Course;open:()=>void}){return <button className="coursecard" onClick={open}><div className={"art "+course.theme}><span>{course.symbol||"✦"}</span><small>{course.group}</small></div><div className="cardbody"><small>{course.group}</small><b>{course.title}</b>{course.description&&<p>{course.description}</p>}<div>Open course<ChevronRight size={15}/></div></div></button>}
