@@ -1,20 +1,4 @@
-fragment TopicBaseFragment on Topic {
-  __typename
-  id
-  translatedTitle
-  translatedDescription
-  iconPath
-  largeIconPath
-  curriculum {
-    __typename
-    key
-    name
-    country
-    region
-  }
-}
 fragment LessonChild on LearnableContent {
-  __typename
   id
   translatedTitle
   translatedDescription
@@ -23,46 +7,45 @@ fragment LessonChild on LearnableContent {
   contentDescriptor
   contentId
   ... on Video {
-    __typename
     duration
     downloadUrls
     translatedYoutubeId
     kaUrl
     youtubeId
     downloadSizes
+    __typename
   }
+  __typename
 }
 query CourseQueryV8($courseId: String!) {
   content {
-    __typename
     metadata {
-      __typename
       commitSha
+      __typename
     }
+    __typename
   }
   topicById(id: $courseId) {
-    __typename
     ...TopicBaseFragment
     subjectMasteryEnabled
     masteryEnabled
     parent {
-      __typename
       parentTitle: translatedTitle
+      __typename
     }
     courseChallenge {
-      __typename
       exerciseLength
       timeEstimate {
-        __typename
         lowerBound
         upperBound
+        __typename
       }
+      __typename
     }
     children(mobileBlacklistVersion: 1) {
       __typename
       ...LessonChild
       ... on Topic {
-        __typename
         ...TopicBaseFragment
         masteryEnabled
         slug
@@ -70,55 +53,73 @@ query CourseQueryV8($courseId: String!) {
           __typename
           ...LessonChild
           ... on TopicQuiz {
-            __typename
             slug
             progressKey
             timeEstimate {
-              __typename
               lowerBound
               upperBound
+              __typename
             }
             exerciseLength
             coveredExercises {
-              __typename
               id
+              __typename
             }
             coveredTutorials {
-              __typename
               id
               key
+              __typename
             }
+            __typename
           }
           ... on TopicUnitTest {
-            __typename
             slug
             progressKey
             timeEstimate {
-              __typename
               lowerBound
               upperBound
+              __typename
             }
             exerciseLength
             coveredExercises {
-              __typename
               id
+              __typename
             }
             coveredTutorials {
-              __typename
               id
               key
+              __typename
             }
+            __typename
           }
           ... on Topic {
-            __typename
             ...TopicBaseFragment
             children(mobileBlacklistVersion: 1) {
               __typename
               ...LessonChild
             }
+            __typename
           }
         }
+        __typename
       }
     }
+    __typename
   }
+  __typename
+}
+fragment TopicBaseFragment on Topic {
+  id
+  translatedTitle
+  translatedDescription
+  iconPath
+  largeIconPath
+  curriculum {
+    key
+    name
+    country
+    region
+    __typename
+  }
+  __typename
 }
