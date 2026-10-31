@@ -8,6 +8,24 @@ fn khan_client() -> Result<reqwest::Client, String> {
     .build().map_err(|e| format!("Could not initialize Khan Academy client: {e}"))
 }
 
+static PHANTOM_SESSION_READY: AtomicBool = AtomicBool::new(false);
+
+async fn ensure_phantom_session() -> Result<(), String> {
+  if !PHANTOM_SESSION_READY.load(Ordering::Acquire) {
+    const QUERY: &str = "mutation LoginAsPhantomMutation { forcePhantom { user { kaid avatarUrl } error { code } } }";
+    let result = khan_graphql_post("LoginAsPhantomMutation", QUERY, serde_json::json!({})).await?;
+    let phantom = result.pointer("/data/forcePhantom").ok_or("Khan Academy did not initialize an anonymous learning session")?;
+    if let Some(error) = phantom.get("error").filter(|v| !v.is_null()) {
+      return Err(format!("Khan Academy anonymous session initialization failed: {error}"));
+    }
+    if phantom.pointer("/user/kaid").and_then(|v|v.as_str()).is_none() {
+      return Err("Khan Academy anonymous session response omitted the user ID".into());
+    }
+    PHANTOM_SESSION_READY.store(true, Ordering::Release);
+  }
+  Ok(())
+}
+
 async fn khan_graphql_post(operation: &str, query: &str, variables: serde_json::Value) -> Result<serde_json::Value, String> {
   let client = khan_client()?;
   let url = format!("https://www.khanacademy.org/api/internal/graphql/{operation}");
@@ -30,9 +48,8 @@ async fn khan_graphql_post(operation: &str, query: &str, variables: serde_json::
 
 #[tauri::command]
 async fn start_device_auth() -> Result<serde_json::Value, String> {
-  // Android initializes a phantom account before requesting a device authorization code.
-  let phantom = "mutation LoginAsPhantomMutation { forcePhantom { user { kaid avatarUrl } error { code } } }";
-  let _ = khan_graphql_post("LoginAsPhantomMutation", phantom, serde_json::json!({})).await?;
+  // Android initializes its anonymous (phantom) user before device authorization.
+  ensure_phantom_session().await?;
   let query = "mutation StartDeviceAuthMutation($input: StartDeviceAuthInput) { startDeviceAuth(input: $input) { userCode deviceCode verificationUrl expiresAt intervalSeconds error { code } } }";
   let result = khan_graphql_post("StartDeviceAuthMutation", query, serde_json::json!({"input":{"deviceModel":"Khan Academy Desktop"}})).await?;
   let request = result.pointer("/data/startDeviceAuth").cloned().ok_or("Khan Academy did not return a device authorization request")?;
@@ -67,7 +84,8 @@ async fn poll_device_auth(device_code: String) -> Result<serde_json::Value, Stri
   Ok(serde_json::json!({"status":"pending"}))
 }
 
-use std::sync::{Arc, OnceLock};\n#[cfg_attr(mobile, tauri::mobile_entry_point)]
+use std::sync::{Arc, OnceLock};
+use std::sync::atomic::{AtomicBool, Ordering};\n#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_opener::init())
@@ -88,6 +106,7 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   }
   let variables = serde_json::json!({"courseId": course_id});
   let variables_json = serde_json::to_string(&variables).map_err(|e| e.to_string())?;
+  ensure_phantom_session().await?;
   let client = khan_client()?;
   let mut url = reqwest::Url::parse("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish")
     .map_err(|e| e.to_string())?;
@@ -136,6 +155,7 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
 async fn fetch_khan_explore_menu() -> Result<Vec<serde_json::Value>, String> {
   const ALL: &str = "query AllCurriculumsQuery { curriculums(includeEmptyCurriculum: true) { key country region name courseMenuRevision { sha __typename } __typename } __typename }";
   const MENU: &str = "query LearnMenuQuery($curriculum: String!) { learnMenuTopics(curriculum: $curriculum) { domainId translatedTitle icon children { courseId translatedTitle href __typename } __typename } __typename }";
+  ensure_phantom_session().await?;
   let client = khan_client()?;
   let response = client.post("https://www.khanacademy.org/api/internal/graphql/AllCurriculumsQuery")
     .header("Accept", "application/json").header("Content-Type", "application/json")
