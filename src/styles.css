@@ -72,3 +72,82 @@
  .scroll{padding-bottom:20px}
 }
 @media(prefers-reduced-motion:reduce){.android-bottom-tabs button,.android-bottom-tabs button .tab-icon{transition:none}}
+
+
+/* Android-first application shell — replaces the previous web-dashboard chrome. */
+:root{
+  color-scheme:light;
+  --ka-ink:#21242c;
+  --ka-muted:#626b75;
+  --ka-line:#e2e5e8;
+  --ka-canvas:#f7f8f9;
+  --ka-surface:#fff;
+  --ka-green:#14bf96;
+  --ka-blue:#1865f2;
+}
+html,body,#root{min-height:100%;height:100%}
+body{min-width:320px;background:var(--ka-canvas);color:var(--ka-ink);font-family:Lato,Arial,sans-serif}
+.shell{height:100dvh;min-height:0;background:var(--ka-canvas)}
+/* Android has no persistent desktop marketing sidebar. */
+.sidebar{display:none!important}
+main{height:100dvh;min-height:0;background:var(--ka-canvas)}
+.topbar{height:58px;min-height:58px;flex-basis:58px;padding:0 clamp(16px,3vw,32px);background:var(--ka-surface);border-bottom:1px solid var(--ka-line)}
+.crumb{font-size:16px;font-weight:700;color:var(--ka-ink)}
+.actions{gap:8px}
+.searchbtn{width:min(34vw,360px);height:38px;border-radius:22px;background:#f1f3f4;border:1px solid transparent;color:#68727c}
+.searchbtn kbd,.iconbtn,.signin,.signup{display:none!important}
+.mobilebrand{display:none!important}
+.scroll{background:var(--ka-canvas);overscroll-behavior:contain}
+.content{width:100%;max-width:1000px;padding:24px clamp(16px,3vw,32px) 36px}
+.content.enter{animation:android-screen-enter .22s cubic-bezier(.2,.7,.2,1) both}
+@keyframes android-screen-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.intro{margin:4px 0 24px}
+.intro>small{font-size:11px;letter-spacing:.45px;color:var(--ka-muted)}
+.intro h1{font-size:28px;line-height:1.2;letter-spacing:-.45px;margin:5px 0 8px;color:var(--ka-ink)}
+.intro p{font-size:14px;line-height:1.5;color:var(--ka-muted);margin:0}
+.android-home{max-width:900px;padding-top:18px}
+.android-upsell{border-radius:8px;box-shadow:none;min-height:184px}
+.upsell-copy{width:50%;padding:24px 28px}
+.upsell-copy h2{font-size:21px;line-height:1.25;letter-spacing:-.2px}
+.upsell-copy p{font-size:14px;line-height:1.45}
+.upsell-illustration{width:50%;min-height:184px}
+.primary{min-height:40px;padding:0 18px;border-radius:5px;font-size:14px;font-weight:700}
+.android-home-card{border-radius:8px;box-shadow:none;border:1px solid var(--ka-line)}
+.android-card-header{min-height:54px;padding:14px 18px}
+.android-card-header h2{font-size:18px}
+.android-empty-state{min-height:104px}
+.filters{gap:8px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}
+.filters button{white-space:nowrap;border-radius:18px;padding:8px 14px;font-size:13px}
+.menu-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.menu-section{border:1px solid var(--ka-line);border-radius:8px;background:var(--ka-surface);overflow:hidden}
+.menu-section h2{font-size:16px;margin:0;padding:15px 16px;border-bottom:1px solid var(--ka-line)}
+.menu-course{min-height:48px;padding:0 16px;font-size:14px;border-bottom:1px solid #edf0f2}
+.menu-course:last-child{border-bottom:0}
+.menu-course:hover{background:#f6f8f9}
+.exploregrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.exploregrid article{border:1px solid var(--ka-line);border-radius:8px;box-shadow:none;padding:18px;background:var(--ka-surface)}
+.coursecard{border-radius:8px;box-shadow:none;border:1px solid var(--ka-line)}
+.detailhero{border-radius:8px;box-shadow:none}
+.empty.large{border:1px solid var(--ka-line);border-radius:8px;background:var(--ka-surface);box-shadow:none}
+.android-bottom-tabs{height:64px;flex-basis:64px;z-index:8;padding:4px 12px;background:var(--ka-surface);border-top:1px solid var(--ka-line);box-shadow:0 -1px 4px #172c3b08;grid-template-columns:repeat(4,minmax(0,120px));gap:4px}
+.android-bottom-tabs button{height:54px;font-size:10px;font-weight:600;color:#68727c;border-radius:6px}
+.android-bottom-tabs button .tab-icon{width:52px;height:28px;border-radius:18px}
+.android-bottom-tabs button.selected{color:#185abc}
+.android-bottom-tabs button.selected .tab-icon{background:#e8f0fe}
+@media(min-width:900px){
+  .android-bottom-tabs{height:68px;flex-basis:68px;grid-template-columns:repeat(4,minmax(0,150px))}
+  .android-bottom-tabs button{height:58px;font-size:11px}
+  .android-bottom-tabs button .tab-icon{width:56px;height:30px}
+}
+@media(max-width:760px){
+  .topbar{height:54px;min-height:54px;flex-basis:54px;padding:0 16px}
+  .crumb{font-size:15px}
+  .actions{flex:0 0 auto}
+  .searchbtn{width:38px;min-width:38px;justify-content:center;padding:0;border-radius:50%;background:transparent;color:#4f5b66}
+  .searchbtn span{display:none}
+  .content{padding:18px 16px 28px}
+  .android-home{padding-top:14px}
+  .menu-sections{grid-template-columns:1fr}
+  .exploregrid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){.content.enter{animation:none}}
