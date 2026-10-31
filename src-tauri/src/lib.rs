@@ -12,16 +12,26 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   if course_id.trim().is_empty() || course_id.len() > 128 {
     return Err("Invalid course identifier".into());
   }
-  let query = include_str!("../../src/khanCourseQuery.graphql");
-  // Match Android graphqlFetch POST. The previous locally-computed persisted-query hash was not registered.
+  // Android sends CourseQueryV8 through the persisted-query cache endpoint.
+  // The hash is computed from the printed document after Apollo's addTypename transform.
+  let query = include_str!("../../src/khanCourseQuery.graphql").trim();
+  let mut hash: u32 = 5381;
+  for ch in query.chars().rev() {
+    hash = hash.wrapping_mul(33) ^ (ch as u32);
+  }
+  let variables = serde_json::json!({"courseId": course_id});
+  let variables_json = serde_json::to_string(&variables).map_err(|e| e.to_string())?;
   let client = reqwest::Client::builder()
     .user_agent("KhanAcademy/8.5.1 (org.khanacademy.android; Android 35; UnknownDeviceName; Google; phone)")
     .build().map_err(|e| e.to_string())?;
-  let response = client.post("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8")
+  let mut url = reqwest::Url::parse("https://www.khanacademy.org/api/internal/graphql/CourseQueryV8?fastlyCacheable=persist_until_publish")
+    .map_err(|e| e.to_string())?;
+  url.query_pairs_mut()
+    .append_pair("hash", &hash.to_string())
+    .append_pair("variables", &variables_json);
+  let response = client.get(url)
     .header("Accept", "application/json")
-    .header("Content-Type", "application/json")
     .header("Origin", "app:org.khanacademy.android")
-    .json(&serde_json::json!({"fromGraphiql":false,"variables":{"courseId":course_id},"operationName":"CourseQueryV8","query":query}))
     .send().await.map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
   let status = response.status();
   let response_text = response.text().await.map_err(|e| format!("Could not read Khan Academy response: {e}"))?;
