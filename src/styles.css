@@ -231,3 +231,14 @@ main{height:100dvh;min-height:0;background:var(--ka-canvas)}
 @media(min-width:760px){.ka-explore .ka-domain-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1100px){.ka-explore .ka-domain-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:560px){.ka-explore .ka-domain-tiles{grid-template-columns:1fr}}
+/* Android-style device authorization sign-in dialog. */
+.ka-auth-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:rgba(20,29,38,.48);backdrop-filter:blur(3px);animation:kaAuthFade .18s ease-out}
+.ka-auth-dialog{position:relative;width:min(100%,440px);padding:32px;border-radius:16px;background:#fff;color:#25313c;box-shadow:0 18px 60px rgba(0,0,0,.22);text-align:center;animation:kaAuthEnter .22s cubic-bezier(.2,.8,.2,1)}
+.ka-auth-close{position:absolute;top:12px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#66727d;font-size:26px;cursor:pointer}
+.ka-auth-mark{width:48px;height:48px;margin:0 auto 18px;display:grid;place-items:center;border-radius:50%;background:#1865f2;color:#fff;font-size:25px;font-weight:800}
+.ka-auth-dialog h2{margin:0 0 10px;font-size:23px}.ka-auth-dialog>p{margin:0 auto 22px;max-width:340px;color:#64717c;line-height:1.5}
+.ka-auth-primary{width:100%;justify-content:center;min-height:46px;margin:0 0 12px}
+.ka-auth-browser{width:100%;min-height:44px;border:1px solid #d7dde3;border-radius:8px;background:#fff;color:#25313c;font-weight:600;cursor:pointer}
+.ka-auth-instructions{margin:18px 0 12px!important}.ka-auth-code{margin:0 auto 18px;padding:14px 10px;border:1px dashed #aab8c7;border-radius:10px;background:#f4f7fb;color:#182b45;font-size:32px;font-weight:800;letter-spacing:.16em;font-variant-numeric:tabular-nums}
+.ka-auth-dialog>small{display:block;color:#73808b;line-height:1.45}.ka-auth-status{margin:14px 0 0!important;font-size:13px}.ka-auth-error{margin:14px 0 0!important;color:#b42318!important;font-size:13px}
+@keyframes kaAuthFade{from{opacity:0}to{opacity:1}}@keyframes kaAuthEnter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
