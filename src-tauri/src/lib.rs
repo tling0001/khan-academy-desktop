@@ -126,32 +126,17 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
     .map_err(|e| format!("Could not reach Khan Academy: {e}"))?;
   let status = response.status();
   let text = response.text().await.map_err(|e| format!("Could not read course response: {e}"))?;
-  // Android's persisted GET is an optimization, not the only way to execute this query.
-  // When the server has evicted/does not recognize the persisted hash, retry as a normal
-  // GraphQL POST exactly as graphqlFetch does for non-cacheable operations.
-  let body_text = if status.as_u16() == 400 && text.contains("No query found for this hash") {
-    let endpoint = "https://www.khanacademy.org/api/internal/graphql/CourseQueryV8";
-    let fallback = client.post(endpoint).header("Accept", "application/json")
-      .header("Content-Type", "application/json")
-      .header("Origin", "app:org.khanacademy.android")
-      .json(&serde_json::json!({
-        "fromGraphiql": false,
-        "operationName": "CourseQueryV8",
-        "query": query,
-        "variables": variables
-      })).send().await.map_err(|e| format!("Persisted query was unavailable and GraphQL POST failed: {e}"))?;
-    let fallback_status = fallback.status();
-    let fallback_text = fallback.text().await.map_err(|e| format!("Could not read GraphQL POST response: {e}"))?;
-    if !fallback_status.is_success() {
-      return Err(format!("Khan Academy CourseQueryV8 POST returned HTTP {fallback_status}: {}", fallback_text.chars().take(1000).collect::<String>()));
-    }
-    fallback_text
-  } else {
-    if !status.is_success() {
-      return Err(format!("Khan Academy CourseQueryV8 returned HTTP {status}: {}", text.chars().take(1000).collect::<String>()));
-    }
-    text
-  };
+  // CourseQueryV8 is marked PERSIST_UNTIL_PUBLISH in Android. The Android
+  // graphqlFetch implementation sends this operation only through the persisted
+  // GET URL; it does not retry a missing hash as a POST. POST retries are rejected
+  // by the current server safelist and do not match Android's request path.
+  if !status.is_success() {
+    return Err(format!(
+      "Khan Academy CourseQueryV8 persisted GET (hash {hash}) returned HTTP {status}: {}",
+      text.chars().take(1000).collect::<String>()
+    ));
+  }
+  let body_text = text;
   let body: serde_json::Value = serde_json::from_str(&body_text)
     .map_err(|e| format!("Khan Academy CourseQueryV8 returned invalid JSON: {e}; body: {}", body_text.chars().take(800).collect::<String>()))?;
   if let Some(errors) = body.get("errors") {
