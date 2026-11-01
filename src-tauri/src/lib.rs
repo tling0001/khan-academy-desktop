@@ -109,7 +109,7 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   if course_id.trim().is_empty() || course_id.len() > 128 {
     return Err("Invalid course identifier".into());
   }
-  let query = format!("{}\n", include_str!("../../src/khanCourseQuery.graphql"));
+  // Git on Windows may check out .graphql files with CRLF line endings.\n  // Android hashes graphql-js printer output, which always uses LF, so normalize\n  // before both hashing and sending the persisted query document.\n  let query = format!("{}\\n", include_str!("../../src/khanCourseQuery.graphql").replace("\\r\\n", "\\n"));
   let mut hash: u32 = 5381;
   for ch in query.chars().rev() {
     hash = hash.wrapping_mul(33) ^ (ch as u32);
