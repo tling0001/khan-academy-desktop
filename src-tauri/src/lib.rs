@@ -207,13 +207,10 @@ async fn fetch_khan_explore_menu() -> Result<Vec<serde_json::Value>, String> {
         Some(item)
       }).collect();
       if !courses.is_empty() {
-        if let Some(existing) = result.iter_mut().find(|entry| entry.get("domainId") == Some(&domain_id)) {
-          if let Some(items) = existing.get_mut("children").and_then(|v|v.as_array_mut()) {
-            for course in courses { if !items.iter().any(|item| item.get("href") == course.get("href")) { items.push(course); } }
-          }
-        } else {
-          result.push(serde_json::json!({"domainId":domain_id,"translatedTitle":title,"icon":icon,"children":courses,"curriculum":key}));
-        }
+        // Android renders each learnMenuTopics entry as its own domain row.
+        // Keep repeated domain IDs separate: different curriculum/grade bands can
+        // intentionally share an ID while having distinct titles and course lists.
+        result.push(serde_json::json!({"domainId":domain_id,"translatedTitle":title,"icon":icon,"children":courses,"curriculum":key}));
       }
     }
   }
