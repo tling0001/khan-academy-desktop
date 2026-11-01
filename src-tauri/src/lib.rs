@@ -109,7 +109,7 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   if course_id.trim().is_empty() || course_id.len() > 128 {
     return Err("Invalid course identifier".into());
   }
-  // This file is already in GraphQL printer output form and ends with the single\n  // newline emitted by Android print(Document). Do not append a second newline: it\n  // changes the persisted-query hash and forces the rejected POST fallback.\n  let query = include_str!("../../src/khanCourseQuery.graphql").to_string();
+  let query = format!("{}\\n", include_str!("../../src/khanCourseQuery.graphql"));
   let mut hash: u32 = 5381;
   for ch in query.chars().rev() {
     hash = hash.wrapping_mul(33) ^ (ch as u32);
