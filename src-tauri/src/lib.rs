@@ -12,7 +12,7 @@ static PHANTOM_SESSION_READY: AtomicBool = AtomicBool::new(false);
 
 async fn ensure_phantom_session() -> Result<(), String> {
   if !PHANTOM_SESSION_READY.load(Ordering::Acquire) {
-    const QUERY: &str = "mutation LoginAsPhantomMutation { forcePhantom { user { kaid avatarUrl } error { code } } }";
+    const QUERY: &str = "mutation LoginAsPhantomMutation {\n  forcePhantom {\n    user {\n      kaid\n      avatarUrl\n      __typename\n    }\n    error {\n      code\n      __typename\n    }\n    __typename\n  }\n  __typename\n}";
     let result = khan_graphql_post("LoginAsPhantomMutation", QUERY, serde_json::json!({})).await?;
     let phantom = result.pointer("/data/forcePhantom").ok_or("Khan Academy did not initialize an anonymous learning session")?;
     if let Some(error) = phantom.get("error").filter(|v| !v.is_null()) {
@@ -50,7 +50,7 @@ async fn khan_graphql_post(operation: &str, query: &str, variables: serde_json::
 async fn start_device_auth() -> Result<serde_json::Value, String> {
   // Android initializes its anonymous (phantom) user before device authorization.
   ensure_phantom_session().await?;
-  let query = "mutation StartDeviceAuthMutation($input: StartDeviceAuthInput) { startDeviceAuth(input: $input) { userCode deviceCode verificationUrl expiresAt intervalSeconds error { code } } }";
+  let query = "mutation StartDeviceAuthMutation($input: StartDeviceAuthInput) {\n  startDeviceAuth(input: $input) {\n    userCode\n    deviceCode\n    verificationUrl\n    expiresAt\n    intervalSeconds\n    error {\n      code\n      __typename\n    }\n    __typename\n  }\n  __typename\n}";
   let result = khan_graphql_post("StartDeviceAuthMutation", query, serde_json::json!({"input":{"deviceModel":"Khan Academy Desktop"}})).await?;
   let request = result.pointer("/data/startDeviceAuth").cloned().ok_or("Khan Academy did not return a device authorization request")?;
   if let Some(error) = request.get("error").filter(|v| !v.is_null()) {
@@ -67,7 +67,7 @@ async fn start_device_auth() -> Result<serde_json::Value, String> {
 #[tauri::command]
 async fn poll_device_auth(device_code: String) -> Result<serde_json::Value, String> {
   if device_code.trim().is_empty() { return Err("Missing device authorization code".into()); }
-  let query = "mutation DeviceAuthTokenMutation($deviceCode: String!) { login: loginWithDeviceAuthToken(deviceCode: $deviceCode) { user { kaid nickname username avatarUrl points includesDistrictOwnedData isPhantom isChild isTeacher isParent hasCoach canModifyCoaches badgeCounts } error { code } } }";
+  let query = "mutation DeviceAuthTokenMutation($deviceCode: String!) {\n  login: loginWithDeviceAuthToken(deviceCode: $deviceCode) {\n    user {\n      ...UserProfileFragment\n      __typename\n    }\n    error {\n      code\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment UserProfileFragment on User {\n  kaid\n  nickname\n  username\n  avatarUrl\n  points\n  includesDistrictOwnedData\n  isPhantom\n  isChild\n  isTeacher\n  isParent\n  isDeveloper: hasPermission(name: \\\"can_do_what_only_admins_can_do\\\")\n  hasCoach\n  canModifyCoaches\n  badgeCounts\n  isAIGuideEnabled\n  __typename\n}";
   let result = khan_graphql_post("DeviceAuthTokenMutation", query, serde_json::json!({"deviceCode":device_code})).await?;
   let login = result.pointer("/data/login").cloned().unwrap_or(serde_json::Value::Null);
   if let Some(code) = login.pointer("/error/code").and_then(|v|v.as_str()) {
