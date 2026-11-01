@@ -109,7 +109,7 @@ async fn fetch_khan_course(course_id: String) -> Result<serde_json::Value, Strin
   if course_id.trim().is_empty() || course_id.len() > 128 {
     return Err("Invalid course identifier".into());
   }
-  let query = format!("{}\\n", include_str!("../../src/khanCourseQuery.graphql"));
+  let query = format!("{}\n", include_str!("../../src/khanCourseQuery.graphql"));
   let mut hash: u32 = 5381;
   for ch in query.chars().rev() {
     hash = hash.wrapping_mul(33) ^ (ch as u32);
