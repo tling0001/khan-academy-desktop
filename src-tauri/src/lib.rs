@@ -13,13 +13,22 @@ static PHANTOM_SESSION_READY: AtomicBool = AtomicBool::new(false);
 async fn ensure_phantom_session() -> Result<(), String> {
   if !PHANTOM_SESSION_READY.load(Ordering::Acquire) {
     const QUERY: &str = "mutation LoginAsPhantomMutation {\n  forcePhantom {\n    user {\n      kaid\n      avatarUrl\n      __typename\n    }\n    error {\n      code\n      __typename\n    }\n    __typename\n  }\n  __typename\n}";
-    let result = khan_graphql_post("LoginAsPhantomMutation", QUERY, serde_json::json!({})).await?;
-    let phantom = result.pointer("/data/forcePhantom").ok_or("Khan Academy did not initialize an anonymous learning session")?;
-    if let Some(error) = phantom.get("error").filter(|v| !v.is_null()) {
-      return Err(format!("Khan Academy anonymous session initialization failed: {error}"));
-    }
-    if phantom.pointer("/user/kaid").and_then(|v|v.as_str()).is_none() {
-      return Err("Khan Academy anonymous session response omitted the user ID".into());
+    match khan_graphql_post("LoginAsPhantomMutation", QUERY, serde_json::json!({})).await {
+      Ok(result) => {
+        let phantom = result.pointer("/data/forcePhantom").ok_or("Khan Academy did not initialize an anonymous learning session")?;
+        if let Some(error) = phantom.get("error").filter(|v| !v.is_null()) {
+          return Err(format!("Khan Academy anonymous session initialization failed: {error}"));
+        }
+        if phantom.pointer("/user/kaid").and_then(|v|v.as_str()).is_none() {
+          return Err("Khan Academy anonymous session response omitted the user ID".into());
+        }
+      }
+      Err(error) if error.contains("Operation not found in safelist") => {
+        // The Android app's LoginAsPhantomMutation is currently not exposed by
+        // this API deployment's safelist. It is an optional anonymous-session
+        // bootstrap, so do not block public course loading or device sign-in.
+      }
+      Err(error) => return Err(error),
     }
     PHANTOM_SESSION_READY.store(true, Ordering::Release);
   }
